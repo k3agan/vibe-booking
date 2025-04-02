@@ -36,7 +36,7 @@ export default function CommunityImpactPage() {
 
       <Grid container spacing={4} justifyContent="center">
         {charities.map((charity) => (
-          <Grid item key={charity.name} xs={12} sm={6} md={4}>
+          <Grid item key={charity.name} component="div" xs={12} sm={6} md={4}>
             <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <CardMedia
                 component="img"
