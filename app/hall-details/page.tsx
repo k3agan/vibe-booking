@@ -1,8 +1,9 @@
 import React from 'react';
 import { Container, Typography, Box, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
-import InfoIcon from '@mui/icons-material/Info'; // Example icon
+import InfoIcon from '@mui/icons-material/Info'; // Keeping generic icon for now
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import MapIcon from '@mui/icons-material/Map';
+import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 export default function HallDetailsPage() {
   return (
@@ -11,57 +12,33 @@ export default function HallDetailsPage() {
         Hall Details
       </Typography>
 
-      {/* 3.2.1 Description */}
+      {/* 3.2.1 Description - Use data from hallInfo */}
       <Box sx={{ my: 4 }}>
         <Typography variant="h5" component="h2" gutterBottom>
           Description
         </Typography>
         <Typography variant="body1" paragraph>
-          [Detailed text describing the hall's atmosphere, potential uses, and unique characteristics will go here...]
+          {hallInfo.description}
         </Typography>
       </Box>
 
       <Divider sx={{ my: 4 }} />
 
-      {/* 3.2.2 Features & Amenities */}
+      {/* 3.2.2 Features & Amenities - Use data from hallInfo */}
       <Box sx={{ my: 4 }}>
         <Typography variant="h5" component="h2" gutterBottom>
           Features & Amenities
         </Typography>
         <List>
-          <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Capacity" secondary="[Seated: X, Standing: Y]" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Dimensions" secondary="[XXm x YYm / ZZZ sq ft]" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Furniture" secondary="[Tables: Count/Type, Chairs: Count/Type]" />
-          </ListItem>
-           <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Kitchen Facilities" secondary="[Oven, Fridge, Sink, Microwave, etc.]" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="AV Equipment" secondary="[Projector, Screen, Sound System, WiFi Details]" />
-          </ListItem>
-           <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Washrooms" secondary="[Details]" />
-          </ListItem>
-           <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Accessibility" secondary="[Ramps, Accessible Washrooms, etc.]" />
-          </ListItem>
-           <ListItem>
-            <ListItemIcon><InfoIcon /></ListItemIcon>
-            <ListItemText primary="Parking" secondary="[Availability/Instructions]" />
-          </ListItem>
-          {/* Add more features as needed */}
+          {hallInfo.features.map((feature, index) => (
+            <ListItem key={index}> {/* Using index as key for now, could use a feature id if added */}
+              <ListItemIcon>
+                {/* TODO: Could assign specific icons based on feature.primary or in hallInfo.ts */}
+                <InfoIcon />
+              </ListItemIcon>
+              <ListItemText primary={feature.primary} secondary={feature.secondary} />
+            </ListItem>
+          ))}
         </List>
       </Box>
 

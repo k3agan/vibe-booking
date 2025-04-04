@@ -1,14 +1,14 @@
 import React from 'react';
 import { Box, Container, Link, Typography } from '@mui/material';
-// We can keep using Next Image or switch to MUI components later if needed
 import Image from 'next/image';
+import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 function Copyright() {
   return (
     <Typography variant="body2" color="text.secondary" align="center">
       {'Copyright © '}
       <Link color="inherit" href="#"> {/* Replace # with actual link later */}
-        [Community Hall Name]
+        {hallInfo.name} {/* Use hall name from data */}
       </Link>{' '}
       {new Date().getFullYear()}
       {'.'}

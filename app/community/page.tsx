@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box, Grid, Card, CardMedia, CardContent, Link as MuiLink, Divider } from '@mui/material';
+import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 // Placeholder data for charities - replace with actual info and get logo permissions
 const charities = [
@@ -21,7 +22,7 @@ export default function CommunityImpactPage() {
       </Typography>
 
       <Typography variant="body1" paragraph sx={{ mb: 4 }}>
-        Renting the [Community Hall Name] is more than just securing a great space for your event. It's an investment in our community. All proceeds from hall rentals are directly channeled to support the vital work of local charities and non-profit organizations right here in [Your Area/City]. We believe in building a stronger community together, and your booking plays a significant part in that mission.
+        Renting the {hallInfo.name} is more than just securing a great space for your event. It's an investment in our community. All proceeds from hall rentals are directly channeled to support the vital work of local charities and non-profit organizations right here in [Your Area/City]. We believe in building a stronger community together, and your booking plays a significant part in that mission.
       </Typography>
 
       <Typography variant="body1" paragraph sx={{ mb: 4 }}>

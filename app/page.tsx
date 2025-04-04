@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Container, Typography, Button, Box } from '@mui/material';
+import { hallInfo } from "./data/hallInfo"; // Import hall data
 
 export default function Home() {
   return (
@@ -7,7 +8,7 @@ export default function Home() {
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
         <Container maxWidth="md" sx={{ mt: 4, mb: 4, textAlign: 'center' }}>
           <Typography variant="h2" component="h1" gutterBottom>
-            Welcome to [Community Hall Name]
+            Welcome to {hallInfo.name}
           </Typography>
           <Typography variant="h5" component="p" color="text.secondary" paragraph>
             Your perfect space for events, supporting local charities with every booking.

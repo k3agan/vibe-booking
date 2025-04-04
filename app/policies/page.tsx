@@ -38,16 +38,16 @@ export default function PoliciesPage() {
          <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 2 }}>
            Full Rental Agreement Document
         </Typography>
-        {/* Option 1: Link to a PDF */}
+        {/* Option 1: Link to a PDF - Use the provided Google Drive link */}
         <Button
           variant="contained"
           startIcon={<DescriptionIcon />}
-          href="/documents/rental-agreement.pdf" // TODO: Replace with actual path to PDF
-          target="_blank"
+          href="https://drive.google.com/file/d/15EikKMr1QP4vmVrKq7h7gp1XXlevhnQW/view?usp=sharing" // Updated with Google Drive link
+          target="_blank" // Keep target blank to open in new tab
           rel="noopener noreferrer"
           sx={{ mr: 2 }}
         >
-          Download Rental Agreement (PDF)
+          View/Download Rental Agreement (PDF)
         </Button>
 
         {/* Option 2: Or Embed the document viewer (if feasible/desired) */}

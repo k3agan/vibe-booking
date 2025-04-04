@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import Link from 'next/link'; // Use Next.js Link for navigation
+import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 export default function Header() {
   return (
@@ -8,7 +9,7 @@ export default function Header() {
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-            [Community Hall Name] {/* TODO: Replace with actual name/logo */}
+            {hallInfo.name} {/* Use hall name from data */}
           </Link>
         </Typography>
 

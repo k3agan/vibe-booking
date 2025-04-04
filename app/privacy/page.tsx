@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Typography, Box } from '@mui/material';
+import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 export default function PrivacyPolicyPage() {
   return (
@@ -13,7 +14,7 @@ export default function PrivacyPolicyPage() {
           Introduction
         </Typography>
         <Typography variant="body1" paragraph>
-          [Your Organization Name/Community Hall Name] ("we," "us," or "our") is committed to protecting your privacy.
+          {hallInfo.name} ("we," "us," or "our") is committed to protecting your privacy.
           This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website [Your Website URL],
           including any other media form, media channel, mobile website, or mobile application related or connected thereto (collectively, the "Site").
           Please read this privacy policy carefully. If you do not agree with the terms of this privacy policy, please do not access the site.
