@@ -1,14 +1,10 @@
 import React from 'react';
 import { Container, Typography, Box, Grid, Card, CardMedia, CardContent, Link as MuiLink, Divider } from '@mui/material';
 import { hallInfo } from '../data/hallInfo'; // Import hall data
+import { supportedCharities } from '../data/charitiesData'; // Import the new charity data
 
-// Placeholder data for charities - replace with actual info and get logo permissions
-const charities = [
-  { name: 'Local Charity One', logo: '/images/charity-logo-placeholder.png', description: 'Brief description of Charity One\'s mission...', website: '#' },
-  { name: 'Community Group Two', logo: '/images/charity-logo-placeholder.png', description: 'Brief description of Group Two\'s work...', website: '#' },
-  { name: 'Non-Profit Three', logo: '/images/charity-logo-placeholder.png', description: 'Brief description of Non-Profit Three\'s cause...', website: '#' },
-  // Add all supported charities from the list/image
-];
+// Remove the old placeholder charities array
+// const charities = [...];
 
 export default function CommunityImpactPage() {
   return (
@@ -36,29 +32,37 @@ export default function CommunityImpactPage() {
       </Typography>
 
       <Grid container spacing={4} justifyContent="center">
-        {charities.map((charity) => (
+        {/* Map over the imported supportedCharities array */}
+        {supportedCharities.map((charity) => (
           <Grid item key={charity.name} component="div" xs={12} sm={6} md={4}>
             <Card sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               <CardMedia
                 component="img"
                 height="140"
-                image={charity.logo} // Ensure you have rights to use logos
+                image={charity.logoUrl || '/images/logos/placeholder.png'} // Use logoUrl, fallback to placeholder
                 alt={`${charity.name} logo`}
-                sx={{ objectFit: 'contain', p: 2, backgroundColor: '#f5f5f5' }} // Added background for visibility
+                sx={{ objectFit: 'contain', p: 2, backgroundColor: '#f5f5f5' }}
               />
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography gutterBottom variant="h6" component="div">
                   {charity.name}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {charity.description}
-                </Typography>
+                {/* Conditionally render description if it exists */}
+                {charity.description && (
+                   <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    ({charity.description})
+                  </Typography>
+                )}
+                {/* Add placeholder for mission description if needed later */}
+                {/* <Typography variant="body2" color="text.secondary">[Mission Placeholder]</Typography> */}
               </CardContent>
-              <Box sx={{ p: 2, pt: 0 }}>
-                <MuiLink href={charity.website} target="_blank" rel="noopener noreferrer" variant="body2">
-                  Visit Website
-                </MuiLink>
-              </Box>
+              {charity.websiteUrl && charity.websiteUrl !== '#' && (
+                <Box sx={{ p: 2, pt: 0 }}>
+                  <MuiLink href={charity.websiteUrl} target="_blank" rel="noopener noreferrer" variant="body2">
+                    Visit Website
+                  </MuiLink>
+                </Box>
+              )}
             </Card>
           </Grid>
         ))}
