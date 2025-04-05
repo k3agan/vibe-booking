@@ -22,6 +22,8 @@ interface HallInfo {
     province: string;
     postalCode: string;
   };
+  email: string;
+  phone: string;
   description: string;
   maxCapacity: number;
   features: Feature[];
@@ -38,6 +40,8 @@ export const hallInfo: HallInfo = {
     province: "B.C.",
     postalCode: "V5B 3P7",
   },
+  email: "capitol.hill.hall@gmail.com",
+  phone: "604-500-9505",
   description: "[Detailed text describing the hall's atmosphere, potential uses, and unique characteristics will go here...]", // Keep placeholder or update if contract had description
   maxCapacity: 140,
   features: [

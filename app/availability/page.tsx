@@ -25,24 +25,25 @@ export default function AvailabilityPage() {
         {/* Update instructions as needed based on calendar view */}
       </Typography>
 
-      {/* Google Calendar Embed */}
-      <Paper elevation={3} sx={{ 
-          maxWidth: 'lg',
-          mx: 'auto',
-          p: {xs: 1, sm: 2, md: 3}, 
-          mb: 4 
-         }}>
+      {/* Google Calendar Embed - Remove wrapping Paper */}
+      {/* <Paper elevation={3} sx={{ ... }}> */}
         <Box
           component="iframe"
           src={calendarEmbedUrl}
-          sx={{ border: 0, display: 'block' }} // Added display: block to potentially help layout
-          width="100%"
-          height="600" // Keep standard height
+          sx={{ 
+            border: 0, 
+            display: 'block', 
+            width: '100%', 
+            maxWidth: 'lg', // Constrain iframe width directly
+            mx: 'auto', // Center iframe
+            mb: 4 // Add bottom margin for spacing
+          }} 
+          height="850" // Increase height significantly again
           frameBorder="0"
-          scrolling="no" // Keep this to prevent iframe's own scrollbars
+          scrolling="no" 
           title="Hall Availability Calendar"
         />
-      </Paper>
+      {/* </Paper> */}
 
       {/* Call to Action */}
       <Box textAlign="center">
