@@ -1,13 +1,13 @@
-Website Requirements Document: [Community Hall Name] Rental Portal
+Website Requirements Document: Capitol Hill Community Hall Rental Portal
 
-Version: 1.0
+Version: 2.0
 Date: April 1, 2025
-Prepared For: [Relevant Committee/Management of the Hall]
+Prepared For: Capitol Hill Community Hall Association Executive Team
 Prepared By: AI Consultant (based on provided context)
 
 1. Introduction
 
-1.1. Purpose: To serve as the primary online platform for the [Community Hall Name], providing comprehensive information to potential renters, showcasing the hall's features and community impact, and streamlining the inquiry and booking process.
+1.1. Purpose: To serve as the primary online platform for the Capitol Hill Community Hall, providing comprehensive information to potential renters, showcasing the hall's features and community impact, and streamlining the inquiry and booking process.
 1.2. Goals:
 Increase awareness and visibility of the hall rental opportunity.
 Generate qualified rental inquiries and bookings.
