@@ -42,18 +42,22 @@ export const hallInfo: HallInfo = {
   },
   email: "capitol.hill.hall@gmail.com",
   phone: "604-500-9505",
-  description: "[Detailed text describing the hall's atmosphere, potential uses, and unique characteristics will go here...]", // Keep placeholder or update if contract had description
+  description: "This is a great space with high ceilings to host all kinds of events from fitness classes to dances, to movie nights. Please let us know what kind of event you will be hosting in the booking request so that we can best accommodate your needs.",
   maxCapacity: 140,
   features: [
-    // Update features based on contract if applicable, otherwise keep placeholders or derive
+    // Building specifications and capacity
     { primary: "Capacity", secondary: "Maximum 140 persons (Fire Department Regulations)" },
-    { primary: "Dimensions", secondary: "[XXm x YYm / ZZZ sq ft]" }, // Not in contract
+    { primary: "Building Size", secondary: "3,042 square feet (282.7 square meters)" },
+    { primary: "Total Lot Area", secondary: "1,608 square meters (building, parking lot, and park)" },
+    { primary: "Parking", secondary: "25 parking spaces available on site" },
+    { primary: "Bathrooms", secondary: "5 bathrooms available on premises" },
+    
+    // Amenities and facilities
     { primary: "Furniture", secondary: "Chairs and tables provided. Renter responsible for setup, takedown, cleaning, and stacking." },
-    { primary: "Kitchen Facilities", secondary: "[Oven, Fridge, Sink, Microwave, etc.]" }, // Details not in contract, assume standard
-    { primary: "AV Equipment", secondary: "[Projector, Screen, Sound System, WiFi Details]" }, // Not mentioned in contract
-    { primary: "Washrooms", secondary: "Available on premises." }, // Implied by checklist
-    { primary: "Accessibility", secondary: "[Ramps, Accessible Washrooms, etc.]" }, // Not mentioned in contract
-    { primary: "Parking", secondary: "Available on site." }, // Implied by checklist mentioning parking area
+    { primary: "Kitchen Facilities", secondary: "Oven, Fridge, Sink, Microwave, and other standard amenities" },
+    { primary: "AV Equipment", secondary: "Projector, Screen, Sound System available" },
+    { primary: "WiFi", secondary: "Free WiFi available on site" },
+    { primary: "Accessibility", secondary: "Ramps and accessible facilities available" },
   ],
   keyPolicies: [
     { title: "Decorations", details: "No confetti, rice, glitter, beads, gum, or similar items. No nails, tape, tacks, pins, screws, staples, or similar items on any surfaces." },
