@@ -55,7 +55,6 @@ export const hallInfo: HallInfo = {
     // Amenities and facilities
     { primary: "Furniture", secondary: "Chairs and tables provided. Renter responsible for setup, takedown, cleaning, and stacking." },
     { primary: "Kitchen Facilities", secondary: "Oven, Fridge, Sink, Microwave, and other standard amenities" },
-    { primary: "AV Equipment", secondary: "Projector, Screen, Sound System available" },
     { primary: "WiFi", secondary: "Free WiFi available on site" },
     { primary: "Accessibility", secondary: "Ramps and accessible facilities available" },
   ],
