@@ -70,15 +70,39 @@ Link to or display of key rental terms/policies (e.g., cancellation, insurance).
 Interactive calendar displaying booked and available dates/times visually.
 Users can navigate between months/weeks.
 Integrates with or informs the booking system to show real-time availability.
-3.5. Booking/Inquiry System:
-3.5.1. CTA Button: Prominent buttons like "Check Availability & Request Booking" or "Inquire Now" on relevant pages.
-3.5.2. Inquiry Form:
-Fields: Contact Name, Email, Phone, Organization (Optional), Event Type, Preferred Date(s)/Time(s), # of Guests (Estimate), Message/Specific Needs.
-Date/Time selection should ideally interact with the Availability Calendar.
-3.5.3. Submission Process:
-Upon submission, user receives an on-screen confirmation message and an automated confirmation email.
-Designated hall manager(s) receive an email notification with the inquiry details.
-System should prevent obvious double-booking requests if possible (e.g., if a date/time slot is marked fully booked on the calendar).
+3.5. Booking System:
+3.5.1. Book Now Page (/book-now):
+Custom booking form with integrated payment processing.
+Real-time availability checking using Google Calendar API.
+Variable duration selection (hourly vs full-day bookings).
+3.5.2. Booking Form Fields:
+Contact Information: Name, Email, Phone, Organization (Optional)
+Event Details: Event Type, Guest Count, Special Requirements
+Date/Time Selection: Interactive calendar with availability checking
+Duration Selection: Hourly (1-7 hours) or Full Day (8+ hours)
+Pricing Calculator: Real-time cost calculation based on rates
+Payment Processing: Stripe integration for secure payments
+3.5.3. Availability System:
+Google Calendar integration for real-time availability checking
+Opening hours: 6:00 AM to 11:00 PM
+Weekday availability: Evenings and afternoons only (Monday-Thursday)
+Weekend availability: Full day options (Friday-Sunday)
+Prevents double-booking by checking calendar availability
+3.5.4. Pricing Structure:
+Weekday Rates: $50/hour or $750 full day
+Weekend Rates: $100/hour or $900 full day
+Mandatory $200 cleaning fee applied to all bookings
+Real-time pricing calculation and display
+3.5.5. Payment Processing:
+Stripe integration for secure payment processing
+Payment required before booking confirmation
+Automatic booking confirmation upon successful payment
+Email confirmations sent to customer and hall management
+3.5.6. Booking Confirmation:
+On-screen confirmation with booking details
+Email confirmation with booking summary
+Google Calendar event creation after payment verification
+Booking reference number for tracking
 3.6. Our Community Impact Page:
 Clearly explain the non-profit model: "Your Rental Makes a Difference."
 List the charities supported (based on the provided image/list).

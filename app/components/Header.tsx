@@ -13,14 +13,22 @@ export default function Header() {
           </Link>
         </Typography>
 
-        {/* Placeholder for Navigation Links */}
+        {/* Navigation Links */}
         <Box>
           <Button color="inherit" component={Link} href="/hall-details">Hall Details</Button>
           <Button color="inherit" component={Link} href="/rates">Rates</Button>
           <Button color="inherit" component={Link} href="/availability">Availability</Button>
           <Button color="inherit" component={Link} href="/community">Community Impact</Button>
           <Button color="inherit" component={Link} href="/contact">Contact</Button>
-          {/* TODO: Add more links (FAQ, Policies, etc.) as needed */}
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            component={Link} 
+            href="/book-now"
+            sx={{ ml: 2 }}
+          >
+            Book Now
+          </Button>
         </Box>
       </Toolbar>
     </AppBar>
