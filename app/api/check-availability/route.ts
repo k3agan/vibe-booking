@@ -25,6 +25,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if we're in production and have calendar credentials
+    if (process.env.NODE_ENV === 'production' && !process.env.GOOGLE_PRIVATE_KEY) {
+      console.log('Calendar availability check disabled in production - missing private key');
+      // Return available to allow bookings to proceed (manual calendar management required)
+      return NextResponse.json({
+        available: true,
+        conflictingEvents: [],
+        requestedTime: {
+          start: new Date(`${selectedDate}T${startTime}:00`).toISOString(),
+          end: new Date(`${selectedDate}T${startTime}:00`).toISOString(),
+        },
+        note: 'Calendar integration disabled - manual availability check required'
+      });
+    }
+
     // Calculate end time
     const startDateTime = new Date(`${selectedDate}T${startTime}:00`);
     let endDateTime;
