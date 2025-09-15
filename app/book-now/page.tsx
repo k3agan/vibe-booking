@@ -178,11 +178,11 @@ export default function BookNowPage() {
     specialRequirements: '',
     
     // Date/Time Selection
-    selectedDate: null,
+    selectedDate: null as Date | null,
     startTime: '',
     
     // Duration Selection
-    bookingType: 'hourly', // 'hourly' or 'fullday'
+    bookingType: 'hourly' as 'hourly' | 'fullday',
     duration: 1, // hours for hourly booking
   });
 

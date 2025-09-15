@@ -122,15 +122,13 @@ Booking Details:
   } catch (error) {
     console.error('Error creating calendar event:', error);
     console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      status: error.status,
-      calendarId,
-      startTime: startTime,
-      endTime: endTime
+      message: error instanceof Error ? error.message : 'Unknown error',
+      code: (error as any)?.code,
+      status: (error as any)?.status,
+      calendarId
     });
     return NextResponse.json(
-      { error: 'Failed to create calendar event', details: error.message },
+      { error: 'Failed to create calendar event', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
