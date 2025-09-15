@@ -37,24 +37,65 @@ export async function POST(request: NextRequest) {
 
     // Create calendar event
     try {
-      const calendarResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Import the calendar API function directly instead of making HTTP request
+      const { google } = await import('googleapis');
+      
+      // Initialize Google Calendar API
+      const calendar = google.calendar({ version: 'v3' });
+      
+      // Set up authentication
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: process.env.GOOGLE_CLIENT_EMAIL,
+          private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
         },
-        body: JSON.stringify({
-          bookingData,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-        }),
+        scopes: ['https://www.googleapis.com/auth/calendar'],
       });
 
-      if (calendarResponse.ok) {
-        const calendarResult = await calendarResponse.json();
-        console.log('Calendar event created:', calendarResult.eventId);
-      } else {
-        console.error('Failed to create calendar event');
-      }
+      const calendarId = process.env.GOOGLE_CALENDAR_ID || 'capitolhillhallrent@gmail.com';
+      const authClient = await auth.getClient();
+
+      // Create event details
+      const eventSummary = `${bookingData.eventType} - ${bookingData.name}`;
+      const eventDescription = `
+Event Type: ${bookingData.eventType}
+Contact: ${bookingData.name} (${bookingData.email}, ${bookingData.phone})
+Attendees: ${bookingData.guestCount} people
+${bookingData.organization ? `Organization: ${bookingData.organization}` : ''}
+${bookingData.specialRequirements ? `Special Requirements: ${bookingData.specialRequirements}` : ''}
+
+Booking Details:
+- Duration: ${bookingData.bookingType === 'hourly' ? `${bookingData.duration} hours` : 'Full day'}
+- Start Time: ${new Date(startDateTime.toISOString()).toLocaleString()}
+- End Time: ${new Date(endDateTime.toISOString()).toLocaleString()}
+      `.trim();
+
+      // Create the calendar event
+      const event = await calendar.events.insert({
+        auth: authClient as any,
+        calendarId,
+        requestBody: {
+          summary: eventSummary,
+          description: eventDescription,
+          start: {
+            dateTime: startDateTime.toISOString(),
+            timeZone: 'America/Vancouver',
+          },
+          end: {
+            dateTime: endDateTime.toISOString(),
+            timeZone: 'America/Vancouver',
+          },
+          reminders: {
+            useDefault: false,
+            overrides: [
+              { method: 'email', minutes: 24 * 60 }, // 1 day before
+              { method: 'popup', minutes: 60 }, // 1 hour before
+            ],
+          },
+        },
+      });
+
+      console.log('Calendar event created:', event.data.id);
     } catch (calendarError) {
       console.error('Calendar error:', calendarError);
       // Don't fail the booking if calendar creation fails
