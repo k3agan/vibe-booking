@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Get events from calendar
     const response = await calendar.events.list({
-      auth: authClient,
+      auth: authClient as any,
       calendarId,
       timeMin: startDate,
       timeMax: endDate,
@@ -90,7 +90,7 @@ Booking Details:
 
     // Create the calendar event
     const event = await calendar.events.insert({
-      auth: authClient,
+      auth: authClient as any,
       calendarId,
       requestBody: {
         summary: eventSummary,

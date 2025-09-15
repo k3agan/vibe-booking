@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Check for conflicts
     const response = await calendar.events.list({
-      auth: authClient,
+      auth: authClient as any,
       calendarId,
       timeMin: startDateTime.toISOString(),
       timeMax: endDateTime.toISOString(),

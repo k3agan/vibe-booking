@@ -3,8 +3,8 @@ import { Container, Typography, Box, Paper, Table, TableBody, TableCell, TableCo
 
 // Rental rates data
 const ratesData = [
-  { category: 'Weekday Rate', hourly: '$50', halfDay: 'N/A', fullDay: '$750' },
-  { category: 'Weekend Rate', hourly: '$100', halfDay: 'N/A', fullDay: '$900' },
+  { category: 'Weekday Rate', hourly: '$50', fullDay: '$750' },
+  { category: 'Weekend Rate', hourly: '$100', fullDay: '$900' },
 ];
 
 export default function RatesPage() {
@@ -25,7 +25,6 @@ export default function RatesPage() {
             <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
               <TableCell>Rate Category</TableCell>
               <TableCell align="right">Hourly Rate</TableCell>
-              <TableCell align="right">Half-Day (4hrs)</TableCell>
               <TableCell align="right">Full-Day (8hrs+)</TableCell>
             </TableRow>
           </TableHead>
@@ -36,7 +35,6 @@ export default function RatesPage() {
                   {row.category}
                 </TableCell>
                 <TableCell align="right">{row.hourly}</TableCell>
-                <TableCell align="right">{row.halfDay}</TableCell>
                 <TableCell align="right">{row.fullDay}</TableCell>
               </TableRow>
             ))}
