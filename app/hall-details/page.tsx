@@ -100,32 +100,6 @@ export default function HallDetailsPage() {
 
       <Divider sx={{ my: 4 }} />
 
-      {/* 3.2.3 Photo & Video Gallery */}
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-           Photo & Video Gallery
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, bgcolor: 'grey.200', borderRadius: 1 }}>
-          <PhotoLibraryIcon sx={{ fontSize: 40, color: 'grey.500' }} />
-          <Typography sx={{ ml: 1, color: 'grey.600' }}>[Image Gallery / Video Tour Placeholder]</Typography>
-        </Box>
-      </Box>
-
-      <Divider sx={{ my: 4 }} />
-
-      {/* 3.2.4 Floor Plan */}
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Floor Plan
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, bgcolor: 'grey.200', borderRadius: 1 }}>
-           <MapIcon sx={{ fontSize: 40, color: 'grey.500' }} />
-           <Typography sx={{ ml: 1, color: 'grey.600' }}>[Floor Plan Image Placeholder - View/Download]</Typography>
-        </Box>
-      </Box>
-
-      <Divider sx={{ my: 4 }} />
-
       {/* Call to Action Buttons */}
       <Box sx={{ my: 4, textAlign: 'center' }}>
         <Typography variant="h5" component="h2" gutterBottom sx={{ mb: 3 }}>
@@ -203,6 +177,19 @@ export default function HallDetailsPage() {
         ]}
         title="Hall Gallery"
       />
+
+      <Divider sx={{ my: 4 }} />
+
+      {/* Floor Plan Section */}
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h5" component="h2" gutterBottom>
+          Floor Plan
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, bgcolor: 'grey.200', borderRadius: 1 }}>
+           <MapIcon sx={{ fontSize: 40, color: 'grey.500' }} />
+           <Typography sx={{ ml: 1, color: 'grey.600' }}>[Floor Plan Image Placeholder - View/Download]</Typography>
+        </Box>
+      </Box>
 
     </Container>
   );
