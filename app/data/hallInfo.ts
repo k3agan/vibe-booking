@@ -33,7 +33,7 @@ interface HallInfo {
 
 // Export the hall information object - Populated from hall-contract.md
 export const hallInfo: HallInfo = {
-  name: "Capitol Hill Community Hall Association",
+  name: "Capitol Hill Hall",
   address: {
     street: "361 Howard Avenue",
     city: "Burnaby",
@@ -42,20 +42,20 @@ export const hallInfo: HallInfo = {
   },
   email: "capitol.hill.hall@gmail.com",
   phone: "604-500-9505",
-  description: "This is a great space with high ceilings to host all kinds of events from fitness classes to dances, to movie nights. Please let us know what kind of event you will be hosting in the booking request so that we can best accommodate your needs.",
+  description: "This is a great space with high ceilings to host all kinds of events from fitness classes to dances, to movie nights. The hall features high-speed gigabit fiber WiFi for all your connectivity needs. Please let us know what kind of event you will be hosting in the booking request so that we can best accommodate your needs.",
   maxCapacity: 140,
   features: [
     // Building specifications and capacity
     { primary: "Capacity", secondary: "Maximum 140 persons (Fire Department Regulations)" },
     { primary: "Building Size", secondary: "3,042 square feet (282.7 square meters)" },
     { primary: "Total Lot Area", secondary: "1,608 square meters (building, parking lot, and park)" },
-    { primary: "Parking", secondary: "25 parking spaces available on site" },
+    { primary: "Free Parking", secondary: "25 parking spaces available on site" },
     { primary: "Bathrooms", secondary: "5 bathrooms available on premises" },
     
     // Amenities and facilities
     { primary: "Furniture", secondary: "Chairs and tables provided. Renter responsible for setup, takedown, cleaning, and stacking." },
     { primary: "Kitchen Facilities", secondary: "Oven, Fridge, Sink, Microwave, and other standard amenities. Re-heating only - no food preparation allowed" },
-    { primary: "WiFi", secondary: "Free WiFi available on site" },
+    { primary: "Free WiFi", secondary: "High-speed gigabit fiber WiFi available on site" },
     { primary: "Accessibility", secondary: "Ramps and accessible facilities available" },
   ],
   keyPolicies: [

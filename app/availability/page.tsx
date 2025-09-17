@@ -30,9 +30,7 @@ export default function AvailabilityPage() {
         </Typography>
         <Typography variant="body2" sx={{ color: 'info.contrastText' }}>
           • <strong>White/empty spaces</strong> = Available for booking<br/>
-          • <strong>Colored blocks</strong> = Already booked<br/>
-          • <strong>Weekday availability</strong> = Evenings and afternoons only (Monday-Thursday)<br/>
-          • <strong>Weekend availability</strong> = Full day options (Friday-Sunday)
+          • <strong>Colored blocks</strong> = Already booked
         </Typography>
       </Box>
 
@@ -74,12 +72,10 @@ export default function AvailabilityPage() {
         <Button
           variant="contained"
           size="large"
-          component="a" // Change component to 'a' for external link
-          href="https://forms.gle/C4ZhDP7v73Ds3pr47" // Link to Google Form
-          target="_blank" // Open in new tab
-          rel="noopener noreferrer" // Security for target="_blank"
+          component={Link}
+          href="/book-now"
         >
-          Request Booking / Inquire Now
+          Book Now
         </Button>
       </Box>
 

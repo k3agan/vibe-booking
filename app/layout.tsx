@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import Header from './components/Header';
 import { hallInfo } from "./data/hallInfo";
 import ThemeRegistry from './ThemeRegistry';
+import { Analytics } from '@vercel/analytics/react';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
           {children}
           <Footer />
         </ThemeRegistry>
+        <Analytics />
       </body>
     </html>
   );

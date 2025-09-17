@@ -18,7 +18,7 @@ export default function CommunityImpactPage() {
       </Typography>
 
       <Typography variant="body1" paragraph sx={{ mb: 4 }}>
-        Renting the {hallInfo.name} is more than just securing a great space for your event. It's an investment in our community. All proceeds from hall rentals are directly channeled to support the vital work of local charities and non-profit organizations right here in {hallInfo.address.city}. We believe in building a stronger community together, and your booking plays a significant part in that mission.
+        Renting {hallInfo.name} is more than just securing a great space for your event. It's an investment in our community. All proceeds from hall rentals are directly channeled to support the vital work of local charities and non-profit organizations right here in {hallInfo.address.city}. We believe in building a stronger community together, and your booking plays a significant part in that mission.
       </Typography>
 
       <Divider sx={{ my: 4 }} />

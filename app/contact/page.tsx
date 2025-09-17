@@ -2,6 +2,7 @@
 
 import React from 'react'; // Removed useState
 import { Container, Typography, Box, Grid, Button, Paper, Link as MuiLink, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'; // Removed TextField, CircularProgress, Alert
+import Link from 'next/link';
 import EmailIcon from '@mui/icons-material/Email';
 import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -49,13 +50,31 @@ export default function ContactPage() {
               </ListItem>
               <ListItem>
                 <ListItemIcon><PhoneIcon /></ListItemIcon>
-                <ListItemText primary="Phone" secondary={hallInfo.phone} />
+                <ListItemText 
+                  primary="Phone" 
+                  secondary={
+                    <Box>
+                      {hallInfo.phone}
+                      <Typography variant="caption" display="block" sx={{ color: 'warning.main', mt: 0.5 }}>
+                        ⚠️ May have interruptions due to staffing availability
+                      </Typography>
+                    </Box>
+                  } 
+                />
               </ListItem>
               <ListItem>
                 <ListItemIcon><AccessTimeIcon /></ListItemIcon>
-                <ListItemText primary="Phone Inquiry Hours" secondary="[e.g., Monday - Friday, 9 AM - 5 PM]" />
+                <ListItemText primary="Phone Inquiry Hours" secondary="Monday to Sunday, 9 AM - 6 PM" />
               </ListItem>
             </List>
+
+            {/* Contact Preference Note */}
+            <Box sx={{ mt: 3, p: 2, bgcolor: 'info.light', borderRadius: 2 }}>
+              <Typography variant="body2" sx={{ color: 'info.contrastText', textAlign: 'center' }}>
+                <strong>📧 We prefer email inquiries for general questions.</strong><br/>
+                For booking requests, please use our online booking system below. Phone calls are reserved for urgent matters or emergencies.
+              </Typography>
+            </Box>
 
             {/* Add CTA Button Section */}
             <Box sx={{ textAlign: 'center', my: 4, py: 3, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}>
@@ -67,11 +86,10 @@ export default function ContactPage() {
                   size="large"
                   color="primary" // Use theme primary color
                   startIcon={<EventAvailableIcon />}
-                  href="https://forms.gle/C4ZhDP7v73Ds3pr47" // Link to Google Form
-                  target="_blank" // Open in new tab
-                  rel="noopener noreferrer"
+                  component={Link}
+                  href="/book-now"
                 >
-                  Submit Booking Request
+                  Book Now
                 </Button>
             </Box>
 

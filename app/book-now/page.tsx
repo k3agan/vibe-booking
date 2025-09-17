@@ -458,12 +458,27 @@ export default function BookNowPage() {
                         onChange={(e) => handleInputChange('eventType', e.target.value)}
                         required
                       >
+                        <MenuItem value="anniversary">Anniversary Celebration</MenuItem>
+                        <MenuItem value="art-craft">Art & Craft Workshop</MenuItem>
+                        <MenuItem value="baby-shower">Baby Shower</MenuItem>
                         <MenuItem value="birthday">Birthday Party</MenuItem>
-                        <MenuItem value="wedding">Wedding</MenuItem>
-                        <MenuItem value="corporate">Corporate Event</MenuItem>
                         <MenuItem value="community">Community Meeting</MenuItem>
+                        <MenuItem value="corporate">Corporate/Team Event</MenuItem>
+                        <MenuItem value="cultural">Cultural Celebration</MenuItem>
+                        <MenuItem value="dance">Dance Class/Workshop</MenuItem>
                         <MenuItem value="fitness">Fitness Class</MenuItem>
+                        <MenuItem value="fundraiser">Fundraiser</MenuItem>
+                        <MenuItem value="game-night">Game Night</MenuItem>
+                        <MenuItem value="graduation">Graduation Party</MenuItem>
+                        <MenuItem value="martial-arts">Martial Arts Training</MenuItem>
+                        <MenuItem value="movie-night">Movie Night</MenuItem>
+                        <MenuItem value="music">Music Lesson/Concert</MenuItem>
                         <MenuItem value="other">Other</MenuItem>
+                        <MenuItem value="religious">Religious Service/Event</MenuItem>
+                        <MenuItem value="retirement">Retirement Party</MenuItem>
+                        <MenuItem value="wedding">Wedding Reception</MenuItem>
+                        <MenuItem value="workshop">Educational Workshop</MenuItem>
+                        <MenuItem value="yoga">Yoga Class</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
@@ -630,19 +645,41 @@ export default function BookNowPage() {
                         Duration: {formData.duration} {formData.duration === 1 ? 'Hour' : 'Hours'}
                       </Typography>
                     )}
+                    {(() => {
+                      const dayOfWeek = formData.selectedDate?.getDay() || 0;
+                      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+                      return (
+                        <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
+                          {isWeekend ? 'Weekend Rate' : 'Weekday Rate'} Applied
+                        </Typography>
+                      );
+                    })()}
                   </Box>
                 )}
 
                 <Divider sx={{ my: 2 }} />
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">
-                    {formData.bookingType === 'hourly' ? 'Hourly Rate' : 'Full Day Rate'}
-                  </Typography>
-                  <Typography variant="body2">
-                    ${calculatedPrice}
-                  </Typography>
-                </Box>
+                {formData.selectedDate && (() => {
+                  const dayOfWeek = formData.selectedDate?.getDay() || 0;
+                  const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+                  const hourlyRate = isWeekend ? 100 : 50;
+                  const fullDayRate = isWeekend ? 900 : 750;
+                  
+                  return (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2">
+                        {formData.bookingType === 'hourly' 
+                          ? `Hourly Rate (${isWeekend ? 'Weekend' : 'Weekday'})` 
+                          : `Full Day Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
+                        }
+                      </Typography>
+                      <Typography variant="body2">
+                        ${formData.bookingType === 'hourly' ? hourlyRate : fullDayRate}
+                        {formData.bookingType === 'hourly' && ` × ${formData.duration}`}
+                      </Typography>
+                    </Box>
+                  );
+                })()}
 
                 <Divider sx={{ my: 2 }} />
 

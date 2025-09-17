@@ -70,7 +70,7 @@ export default function Home() {
             </Box>
           </Box>
           <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Button variant="outlined" size="large" href="/hall-details">
+            <Button variant="outlined" size="large" href="/gallery">
               View Full Gallery
             </Button>
           </Box>
