@@ -35,9 +35,13 @@ export default function CommunityImpactPage() {
               <CardMedia
                 component="img"
                 height="140"
-                image={charity.logoUrl || '/images/logos/placeholder.png'} // Use logoUrl, fallback to placeholder
+                image={charity.logoUrl}
                 alt={`${charity.name} logo`}
-                sx={{ objectFit: 'contain', p: 2, backgroundColor: '#f5f5f5' }}
+                sx={{ 
+                  objectFit: 'contain', 
+                  p: 2, 
+                  backgroundColor: '#f5f5f5'
+                }}
               />
               <CardContent sx={{ flexGrow: 1 }}>
                 <Typography gutterBottom variant="h6" component="div">
