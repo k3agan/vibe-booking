@@ -8,8 +8,8 @@ export default function Home() {
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Box sx={{ position: 'relative', width: '100%', height: '60vh', maxHeight: '500px' }}>
            <Image
-              src="/hall-front-hero-image.png"
-              alt={`${hallInfo.name} exterior view`}
+              src="/images/exterior/exterior-street-view-with-skyline.jpg"
+              alt={`${hallInfo.name} exterior view with skyline`}
               fill
               style={{ objectFit: 'cover' }}
               priority
@@ -35,6 +35,44 @@ export default function Home() {
                 View Rates
               </Button>
             </Box>
+          </Box>
+        </Container>
+
+        {/* Photo Preview Section */}
+        <Container maxWidth="lg" sx={{ mt: 6, mb: 4 }}>
+          <Typography variant="h4" component="h2" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+            Take a Look Around
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
+            <Box sx={{ position: 'relative', height: 250, borderRadius: 2, overflow: 'hidden' }}>
+              <Image
+                src="/images/hall/main-hall-wide-view.jpg"
+                alt="Main hall wide view"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            </Box>
+            <Box sx={{ position: 'relative', height: 250, borderRadius: 2, overflow: 'hidden' }}>
+              <Image
+                src="/images/kitchen/kitchen-fridge-and-stove.jpg"
+                alt="Kitchen facilities"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            </Box>
+            <Box sx={{ position: 'relative', height: 250, borderRadius: 2, overflow: 'hidden' }}>
+              <Image
+                src="/images/exterior/exterior-parking-lot-full-view.jpg"
+                alt="Parking facilities"
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            </Box>
+          </Box>
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Button variant="outlined" size="large" href="/hall-details">
+              View Full Gallery
+            </Button>
           </Box>
         </Container>
       </Box>
