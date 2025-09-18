@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendBookingConfirmation } from '../../lib/email';
+import { createBooking, logEmailSent } from '../../../lib/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,14 +29,15 @@ export async function POST(request: NextRequest) {
     // Calculate event times
     // Extract just the date part (YYYY-MM-DD) from the selectedDate
     const dateOnly = bookingData.selectedDate.split('T')[0];
-    const startDateTime = new Date(`${dateOnly}T${bookingData.startTime}:00`);
-    let endDateTime;
+    let startDateTime, endDateTime;
     
     if (bookingData.bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM
+      // Full day: 8 AM to 11 PM (ignore user-provided start time)
+      startDateTime = new Date(`${dateOnly}T08:00:00`);
       endDateTime = new Date(`${dateOnly}T23:00:00`);
     } else {
-      // Hourly: add duration to start time
+      // Hourly: use user-provided start time and add duration
+      startDateTime = new Date(`${dateOnly}T${bookingData.startTime}:00`);
       endDateTime = new Date(startDateTime.getTime() + (bookingData.duration * 60 * 60 * 1000));
     }
 
@@ -49,6 +51,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create calendar event (with production error handling)
+    let calendarEventId: string | undefined;
     try {
       // Check if we're in production and disable calendar creation if there are key issues
       if (process.env.NODE_ENV === 'production' && !process.env.GOOGLE_PRIVATE_KEY) {
@@ -127,11 +130,39 @@ Booking Details:
           },
         });
 
-        console.log('Calendar event created:', event.data.id);
+        calendarEventId = event.data?.id || undefined;
+        console.log('Calendar event created:', calendarEventId);
       }
     } catch (calendarError) {
       console.error('Calendar error:', calendarError);
       // Don't fail the booking if calendar creation fails
+    }
+
+    // Save booking to database
+    let savedBooking;
+    try {
+      savedBooking = await createBooking({
+        bookingRef,
+        customerName: bookingData.name,
+        customerEmail: bookingData.email,
+        customerPhone: bookingData.phone,
+        organization: bookingData.organization,
+        eventType: bookingData.eventType,
+        guestCount: parseInt(bookingData.guestCount),
+        specialRequirements: bookingData.specialRequirements,
+        selectedDate: dateOnly,
+        startTime: bookingData.startTime,
+        endTime: endDateTime.toTimeString().split(' ')[0],
+        bookingType: bookingData.bookingType,
+        duration: bookingData.duration,
+        calculatedPrice,
+        paymentIntentId,
+        calendarEventId
+      });
+      console.log('Booking saved to database:', savedBooking.id);
+    } catch (dbError) {
+      console.error('Error saving booking to database:', dbError);
+      // Continue with email sending even if DB save fails
     }
 
     // Send confirmation emails
@@ -146,15 +177,28 @@ Booking Details:
       
       if (emailResult.success) {
         console.log('Confirmation emails sent successfully');
+        
+        // Log email sent in database
+        if (savedBooking) {
+          await logEmailSent(savedBooking.id, 'confirmation', bookingData.email, 'sent');
+          await logEmailSent(savedBooking.id, 'confirmation', 'info@caphillhall.ca', 'sent');
+        }
       } else {
         console.error('Failed to send confirmation emails:', emailResult.error);
+        
+        // Log email failure in database
+        if (savedBooking) {
+          await logEmailSent(savedBooking.id, 'confirmation', bookingData.email, 'failed', emailResult.error);
+        }
       }
     } catch (emailError) {
       console.error('Error sending confirmation emails:', emailError);
-      // Don't fail the booking if email sending fails
+      
+      // Log email failure in database
+      if (savedBooking) {
+        await logEmailSent(savedBooking.id, 'confirmation', bookingData.email, 'failed', emailError instanceof Error ? emailError.message : 'Unknown error');
+      }
     }
-
-    // TODO: Save to database
 
     return NextResponse.json({
       success: true,

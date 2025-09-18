@@ -18,9 +18,17 @@ export async function POST(request: NextRequest) {
   try {
     const { selectedDate, startTime, duration, bookingType } = await request.json();
 
-    if (!selectedDate || !startTime) {
+    if (!selectedDate) {
       return NextResponse.json(
-        { error: 'Date and start time are required' },
+        { error: 'Date is required' },
+        { status: 400 }
+      );
+    }
+
+    // For hourly bookings, start time is required
+    if (bookingType === 'hourly' && !startTime) {
+      return NextResponse.json(
+        { error: 'Start time is required for hourly bookings' },
         { status: 400 }
       );
     }
@@ -40,15 +48,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Calculate end time
-    const startDateTime = new Date(`${selectedDate}T${startTime}:00`);
-    let endDateTime;
+    // Calculate start and end times
+    let startDateTime, endDateTime;
     
     if (bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM
+      // Full day: 8 AM to 11 PM (ignore user-provided start time)
+      startDateTime = new Date(`${selectedDate}T08:00:00`);
       endDateTime = new Date(`${selectedDate}T23:00:00`);
     } else {
-      // Hourly: add duration to start time
+      // Hourly: use user-provided start time and add duration
+      startDateTime = new Date(`${selectedDate}T${startTime}:00`);
       endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
     }
 

@@ -309,9 +309,20 @@ export default function BookNowPage() {
     
     // Validate required fields
     if (!formData.name || !formData.email || !formData.phone || !formData.eventType || 
-        !formData.guestCount || !formData.selectedDate || !formData.startTime) {
+        !formData.guestCount || !formData.selectedDate) {
       alert('Please fill in all required fields');
       return;
+    }
+    
+    // For hourly bookings, start time is required
+    if (formData.bookingType === 'hourly' && !formData.startTime) {
+      alert('Please select a start time for hourly bookings');
+      return;
+    }
+    
+    // For full-day bookings, set default start time to 8 AM
+    if (formData.bookingType === 'fullday' && !formData.startTime) {
+      setFormData(prev => ({ ...prev, startTime: '08:00' }));
     }
     
     // Check availability first
@@ -520,23 +531,31 @@ export default function BookNowPage() {
                       minDate={new Date()}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Start Time *</InputLabel>
-                      <Select
-                        value={formData.startTime}
-                        onChange={(e) => handleInputChange('startTime', e.target.value)}
-                        required
-                      >
-                        {timeOptions.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+                  {formData.bookingType === 'hourly' && (
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Start Time *</InputLabel>
+                        <Select
+                          value={formData.startTime}
+                          onChange={(e) => handleInputChange('startTime', e.target.value)}
+                          required
+                        >
+                          {timeOptions.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  )}
                 </Grid>
+
+                {formData.bookingType === 'fullday' && (
+                  <Alert severity="info" sx={{ mb: 3 }}>
+                    Full-day bookings run from 8:00 AM to 11:00 PM
+                  </Alert>
+                )}
 
                 <Divider sx={{ my: 3 }} />
 

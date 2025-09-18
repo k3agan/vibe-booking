@@ -26,6 +26,10 @@ export default function Footer() {
           <Typography variant="body2" color="text.secondary" paragraph>
             {hallInfo.address.city}, {hallInfo.address.province}
           </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.5 }}>
+            <Link href="/admin" color="inherit" sx={{ textDecoration: 'none' }}>Admin</Link> | 
+            <Link href="/my-bookings" color="inherit" sx={{ textDecoration: 'none', ml: 1 }}>My Bookings</Link>
+          </Typography>
           <Copyright />
         </Box>
       </Container>
