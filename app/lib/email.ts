@@ -28,7 +28,7 @@ export async function sendBookingConfirmation(confirmation: BookingConfirmation)
   try {
     // Customer confirmation email
     await resend.emails.send({
-      from: 'Capitol Hill Hall <bookings@caphillhall.ca>',
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [confirmation.bookingData.email],
       subject: `Booking Confirmed - ${confirmation.bookingRef}`,
       html: generateCustomerEmailHTML(confirmation),
@@ -36,7 +36,7 @@ export async function sendBookingConfirmation(confirmation: BookingConfirmation)
 
     // Management notification email
     await resend.emails.send({
-      from: 'Capitol Hill Hall <bookings@caphillhall.ca>',
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: ['capitol.hill.hall@gmail.com'], // Hall management email
       subject: `New Booking: ${confirmation.bookingData.eventType} - ${confirmation.bookingRef}`,
       html: generateManagementEmailHTML(confirmation),
@@ -64,7 +64,7 @@ export async function sendEventReminder(bookingData: {
 }) {
   try {
     await resend.emails.send({
-      from: 'Capitol Hill Hall <bookings@caphillhall.ca>',
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [bookingData.customerEmail],
       subject: `Event Reminder - ${bookingData.bookingRef} - Tomorrow!`,
       html: generateReminderEmailHTML(bookingData),
@@ -92,7 +92,7 @@ export async function sendPostEventFollowUp(bookingData: {
 }) {
   try {
     await resend.emails.send({
-      from: 'Capitol Hill Hall <bookings@caphillhall.ca>',
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [bookingData.customerEmail],
       subject: `Thank you for your event! - ${bookingData.bookingRef}`,
       html: generateFollowUpEmailHTML(bookingData),

@@ -26,11 +26,13 @@ import {
   Divider,
   Card,
   CardContent,
-  Alert
+  Alert,
+  Checkbox
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import RentalAgreement from '../components/RentalAgreement';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
@@ -192,6 +194,8 @@ export default function BookNowPage() {
   const [bookingRef, setBookingRef] = useState('');
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [showRentalAgreement, setShowRentalAgreement] = useState(false);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   // Generate time options with 30-minute granularity (6 AM to 11 PM)
   const generateTimeOptions = () => {
@@ -331,15 +335,27 @@ export default function BookNowPage() {
       return; // Stop if not available
     }
     
-    console.log('Form submitted, showing payment form');
-    console.log('Stripe publishable key:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-    setShowPaymentForm(true);
+    console.log('Form submitted, showing rental agreement');
+    setShowRentalAgreement(true);
   };
 
   const handlePaymentSuccess = (ref: string) => {
     setBookingRef(ref);
     setBookingSuccess(true);
   };
+
+  const handleAgreementAccept = () => {
+    setAgreementAccepted(true);
+    setShowRentalAgreement(false);
+    setShowPaymentForm(true);
+    console.log('Agreement accepted, showing payment form');
+  };
+
+  const handleAgreementClose = () => {
+    setShowRentalAgreement(false);
+    setAgreementAccepted(false);
+  };
+
 
   // Show success message
   if (bookingSuccess) {
@@ -618,7 +634,7 @@ export default function BookNowPage() {
                   disabled={isCheckingAvailability}
                   sx={{ mt: 3, py: 2 }}
                 >
-                  {isCheckingAvailability ? 'Checking Availability...' : 'Proceed to Payment'}
+                  {isCheckingAvailability ? 'Checking Availability...' : 'Review Rental Agreement'}
                 </Button>
               </form>
 
@@ -626,8 +642,11 @@ export default function BookNowPage() {
               {showPaymentForm && (
                 <Box sx={{ mt: 3, p: 2, border: '2px solid #1976d2', borderRadius: 2 }}>
                   <Typography variant="h6" gutterBottom>
-                    Payment Form (Debug Mode)
+                    Payment Information
                   </Typography>
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    ✓ Rental agreement accepted. Proceed with secure payment to confirm your booking.
+                  </Alert>
                   <Typography variant="body2" sx={{ mb: 2 }}>
                     Stripe Key: {process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'Set' : 'Not Set'}
                   </Typography>
@@ -716,6 +735,15 @@ export default function BookNowPage() {
         </Grid>
         </Container>
       </Elements>
+      
+      {/* Rental Agreement Modal */}
+      <RentalAgreement
+        open={showRentalAgreement}
+        onClose={handleAgreementClose}
+        onAccept={handleAgreementAccept}
+        formData={formData}
+        calculatedPrice={calculatedPrice}
+      />
     </LocalizationProvider>
   );
 }
