@@ -10,7 +10,7 @@ export default function PoliciesPage() {
         Rental Agreement & Policies
       </Typography>
       <Typography variant="body1" paragraph sx={{ mb: 4 }}>
-        Please review our rental agreement and policies carefully before booking. Understanding these terms ensures a smooth and successful event for everyone.
+        Please review our rental agreement and policies carefully before booking. These terms are legally binding and will be presented for your acceptance during the booking process. Understanding these requirements ensures a smooth and successful event for everyone.
       </Typography>
 
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
@@ -18,19 +18,20 @@ export default function PoliciesPage() {
           Key Rules & Responsibilities Summary
         </Typography>
         <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 3, color: 'text.secondary' }}>
-           <li>Booking & Payment: [Brief summary of deposit, final payment deadlines]</li>
-           <li>Cancellation: [Brief summary of cancellation terms, link to full policy]</li>
-           <li>Setup & Cleanup: [Brief summary of renter responsibilities, time constraints]</li>
-           <li>Decorations: [Brief summary of key restrictions (e.g., no wall attachments, confetti)]</li>
-           <li>Alcohol & Smoking: [Brief summary of policies]</li>
-           <li>Noise Levels: [Brief summary of restrictions]</li>
-           <li>Capacity Limits: [State maximum occupancy]</li>
-           <li>Insurance: [Briefly state if required]</li>
-           <li>Damages: [Renter responsibility for damages]</li>
-           {/* Add other critical points */}
+           <li><strong>Payment:</strong> Full balance and damage deposit due 31 days prior to event</li>
+           <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450)</li>
+           <li><strong>Event Hours:</strong> All guests must vacate by 11:00 PM; hall cleaned and vacated by 12:00 AM</li>
+           <li><strong>Decorations:</strong> No confetti, rice, glitter, beads, or similar items; no wall attachments</li>
+           <li><strong>Alcohol:</strong> Requires liquor license, Serving it Right, Food Safe, and additional $200,000 insurance</li>
+           <li><strong>Noise:</strong> Music must cease at 11:00 PM; respect Burnaby noise bylaws</li>
+           <li><strong>Capacity:</strong> Maximum 140 persons; clear access to fire exits required</li>
+           <li><strong>Insurance:</strong> Renter must provide liability insurance proof at time of deposit</li>
+           <li><strong>Setup/Cleanup:</strong> Renter responsible for all setup, takedown, and cleaning per checklist</li>
+           <li><strong>Key Access:</strong> Renter unlocks lockbox for key at start, returns to office before leaving</li>
+           <li><strong>Age Requirement:</strong> Responsible adult (19+) must remain on premises at all times</li>
         </Typography>
         <Typography variant="body1">
-          This is a summary only. Please refer to the full Rental Agreement for complete details.
+          This is a summary only. The complete rental agreement will be presented during the booking process and must be accepted before payment can be processed.
         </Typography>
       </Paper>
 
