@@ -28,7 +28,8 @@ export default function Footer() {
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.5 }}>
             <Link href="/admin" color="inherit" sx={{ textDecoration: 'none' }}>Admin</Link> | 
-            <Link href="/my-bookings" color="inherit" sx={{ textDecoration: 'none', ml: 1 }}>My Bookings</Link>
+            <Link href="/my-bookings" color="inherit" sx={{ textDecoration: 'none', ml: 1 }}>My Bookings</Link> |
+            <Link href="/privacy" color="inherit" sx={{ textDecoration: 'none', ml: 1 }}>Privacy Policy</Link>
           </Typography>
           <Copyright />
         </Box>
