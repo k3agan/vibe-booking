@@ -215,7 +215,7 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
 
         <div class="footer">
           <p><strong>Capitol Hill Hall</strong><br>
-          📧 info@caphillhall.ca | 📞 (778) 885-4208<br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
           🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
           <p><em>Your rental helps support local charities in our community!</em></p>
         </div>
@@ -445,7 +445,7 @@ function generateReminderEmailHTML(bookingData: {
 
         <div class="footer">
           <p><strong>Capitol Hill Hall</strong><br>
-          📧 info@caphillhall.ca | 📞 (778) 885-4208<br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
           🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
           <p><em>We're excited to host your event!</em></p>
         </div>
@@ -599,7 +599,7 @@ function generateFollowUpEmailHTML(bookingData: {
 
         <div class="footer">
           <p><strong>Capitol Hill Hall</strong><br>
-          📧 capitol.hill.hall@gmail.com | 📞 (778) 885-4208<br>
+          📧 capitol.hill.hall@gmail.com | 📞 (604) 500-9505<br>
           🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
           <p><em>Thank you for supporting our community hall and local charities!</em></p>
         </div>

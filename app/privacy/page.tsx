@@ -105,7 +105,7 @@ export default function PrivacyPolicyPage() {
         </Typography>
         <Typography variant="body1" component="ul" sx={{ pl: 2 }}>
           <li>Email: info@caphillhall.ca</li>
-          <li>Phone: (778) 885-4208</li>
+          <li>Phone: (604) 500-9505</li>
           <li>Address: 361 Howard Avenue, Burnaby, B.C. V5B 3P7</li>
         </Typography>
 
