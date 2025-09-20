@@ -76,7 +76,7 @@ export default function CommunityImpactPage() {
             From Our Partners
           </Typography>
           <Typography variant="body1" paragraph sx={{ textAlign: 'center', color: 'text.secondary' }}>
-            [Placeholder for testimonials from supported charities. Quotes here would be very impactful.]
+            Hear from the organizations that benefit from your rental support.
           </Typography>
           {/* Example Testimonial Structure */}
           {/* <Paper elevation={1} sx={{ p: 2, mt: 2 }}>

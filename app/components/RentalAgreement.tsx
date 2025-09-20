@@ -68,7 +68,7 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           RENTAL AGREEMENT
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 1 }}>
-          Between: CAPITOL HILL COMMUNITY HALL ASSOCIATION and {formData.name || '[RENTER NAME]'}
+          Between: CAPITOL HILL COMMUNITY HALL ASSOCIATION and {formData.name || 'Renter'}
         </Typography>
       </DialogTitle>
       
@@ -81,10 +81,10 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Date:</strong> {formData.selectedDate ? formatDate(formData.selectedDate) : '[DATE]'}</Typography>
+                <Typography variant="body2"><strong>Date:</strong> {formData.selectedDate ? formatDate(formData.selectedDate) : 'Selected Date'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Event Type:</strong> {formData.eventType || '[EVENT TYPE]'}</Typography>
+                <Typography variant="body2"><strong>Event Type:</strong> {formData.eventType || 'Event'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Start Time:</strong> {formData.startTime ? new Date(2000, 0, 1, parseInt(formData.startTime.split(':')[0]), parseInt(formData.startTime.split(':')[1])).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '8:00 AM'}</Typography>
@@ -93,19 +93,19 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
                 <Typography variant="body2"><strong>End Time:</strong> {getEndTime()}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Guest Count:</strong> {formData.guestCount || '[GUEST COUNT]'}</Typography>
+                <Typography variant="body2"><strong>Guest Count:</strong> {formData.guestCount || 'TBD'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Total Cost:</strong> ${calculatedPrice}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="body2"><strong>Contact Person:</strong> {formData.name || '[NAME]'}</Typography>
+                <Typography variant="body2"><strong>Contact Person:</strong> {formData.name || 'Renter'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Phone:</strong> {formData.phone || '[PHONE]'}</Typography>
+                <Typography variant="body2"><strong>Phone:</strong> {formData.phone || 'Not provided'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Email:</strong> {formData.email || '[EMAIL]'}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {formData.email || 'Not provided'}</Typography>
               </Grid>
             </Grid>
           </Paper>

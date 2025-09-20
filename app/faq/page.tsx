@@ -9,46 +9,55 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // Add a unique id to each FAQ item for stable accessibility props
 const faqs = [
   {
-    id: 'booking-process', // Added id
+    id: 'booking-process',
     question: 'What is the booking process?',
-    answer: '[Detailed answer about the steps to book the hall, e.g., Check availability -> Submit inquiry form -> We contact you -> Sign agreement -> Pay deposit...]',
+    answer: 'Booking is simple and automated! Check our availability calendar, select your date and time, fill out the booking form, review and accept the rental agreement, then proceed to secure payment. You\'ll receive instant confirmation and all necessary details via email.',
   },
   {
-    id: 'cancellation-policy', // Added id
+    id: 'cancellation-policy',
     question: 'What is the cancellation policy?',
-    answer: '[Details about cancellation deadlines, potential refunds, or fees. Link to the full policy page if applicable.]',
+    answer: 'Cancellations require 21 days advance notice for a full refund. Cancellations with less than 21 days notice incur a 50% cancellation fee (maximum $450). Please review our full rental agreement for complete details.',
   },
   {
-    id: 'alcohol-policy', // Added id
+    id: 'alcohol-policy',
     question: 'Are we allowed to bring our own alcohol?',
-    answer: '[Explain the hall\'s policy on alcohol, including any permit requirements, corkage fees, or restrictions.]',
+    answer: 'Yes, but alcohol service requires a valid liquor license, Serving it Right certification, Food Safe certification, and additional $200,000 liability insurance. All requirements must be provided at the time of deposit.',
   },
   {
-    id: 'noise-restrictions', // Added id
+    id: 'noise-restrictions',
     question: 'Are there noise restrictions?',
-    answer: '[Detail any specific noise level rules or time restrictions (e.g., music must be off by 11 PM).]',
+    answer: 'Yes, all music and bar service must cease at 11:00 PM. We ask that you be courteous to our neighbors and respect Burnaby noise bylaws. The hall must be cleaned and vacated by 12:00 AM.',
   },
-    {
-    id: 'decorations-policy', // Added id
+  {
+    id: 'decorations-policy',
     question: 'Can we decorate the hall?',
-    answer: '[Explain rules regarding decorations, what is allowed/disallowed (e.g., no tape on walls, no confetti), and cleanup requirements.]',
+    answer: 'Yes, but with restrictions. No confetti, rice, glitter, beads, or similar items are allowed. No wall attachments or tape on walls. All decorations must be removed during cleanup. If prohibited items are found, extra cleanup costs will be deducted from your damage deposit.',
   },
   {
-    id: 'parking-info', // Added id
+    id: 'parking-info',
     question: 'Is parking available?',
-    answer: '[Information about parking availability, location, cost (if any), and any specific instructions.]',
+    answer: 'Yes! We offer free parking for all guests. The parking lot can accommodate multiple vehicles and is conveniently located adjacent to the hall entrance.',
   },
   {
-    id: 'setup-cleanup-time', // Added id
+    id: 'setup-cleanup-time',
     question: 'Is setup and cleanup time included in the rental period?',
-    answer: '[Clarify whether renters need to factor setup/cleanup into their booked time or if separate time is allocated/available.]',
+    answer: 'Setup and cleanup time is included in your rental period. Please factor this time into your booking. You\'ll receive a detailed checklist to ensure proper cleanup. A responsible adult (19+) must remain on premises at all times.',
   },
-   {
-    id: 'event-insurance', // Added id
+  {
+    id: 'event-insurance',
     question: 'Do we need event insurance?',
-    answer: '[State whether event liability insurance is required, recommended amount, and if proof is needed.]',
+    answer: 'Yes, you must provide proof of liability insurance covering all liabilities that may arise from your use of the premises. This proof must be provided at the time of deposit. The insurance should cover negligence and other potential claims.',
   },
-  // Add more common questions with unique ids
+  {
+    id: 'capacity-limits',
+    question: 'What is the maximum capacity?',
+    answer: 'The hall can accommodate up to 140 persons. Clear access to all fire exits must be maintained at all times for safety compliance.',
+  },
+  {
+    id: 'payment-terms',
+    question: 'When is payment due?',
+    answer: 'Full payment and damage deposit are due 31 days prior to your event. We accept secure online payments through our booking system. A 50% deposit is required at booking, with the balance due 31 days before your event.',
+  }
 ];
 
 export default function FAQPage() {
