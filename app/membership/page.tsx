@@ -11,6 +11,7 @@ import {
   Handshake,
   VolunteerActivism
 } from '@mui/icons-material';
+import ScrollableCalendar from '../components/ScrollableCalendar';
 
 export default function MembershipPage() {
   return (
@@ -50,6 +51,13 @@ export default function MembershipPage() {
           </Typography>
         </Box>
       </Paper>
+
+      {/* Community Calendar */}
+      <ScrollableCalendar 
+        calendarId="MzcwZjk5NjkwM2NjMTZkZWQ0MGUzMzBhMmY5MzUxYzU2ODk5ZjY2OTQzNzk5ZjY2NDFlOTcyMzQwZGFmNWE0YUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t"
+        title="Community Events & Meetings"
+        height="450px"
+      />
 
       {/* Benefits Grid */}
       <Typography variant="h5" component="h2" gutterBottom sx={{ mt: 4, mb: 3 }}>
