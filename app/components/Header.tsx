@@ -17,10 +17,10 @@ export default function Header() {
         <Box>
           <Button color="inherit" component={Link} href="/hall-details">Hall Details</Button>
           <Button color="inherit" component={Link} href="/gallery">Gallery</Button>
+          <Button color="inherit" component={Link} href="/availability">Availability</Button>
+          <Button color="inherit" component={Link} href="/rates">Rates</Button>
           <Button color="inherit" component={Link} href="/history">History</Button>
           <Button color="inherit" component={Link} href="/membership">Membership</Button>
-          <Button color="inherit" component={Link} href="/rates">Rates</Button>
-          <Button color="inherit" component={Link} href="/availability">Availability</Button>
           <Button color="inherit" component={Link} href="/community">Community Impact</Button>
           <Button color="inherit" component={Link} href="/contact">Contact</Button>
           <Button 

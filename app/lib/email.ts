@@ -436,7 +436,57 @@ function generateReminderEmailHTML(bookingData: {
           <h3>📋 Setup & Cleanup</h3>
           <p><strong>Setup:</strong> Chairs and tables are provided. You are responsible for setup, takedown, cleaning, and stacking.</p>
           <p><strong>Kitchen:</strong> Available for re-heating only (no food preparation allowed).</p>
-          <p><strong>Cleanup:</strong> Hall must be cleaned and vacated by 12 midnight. Please follow the Hall Closing Checklist.</p>
+          <p><strong>Cleanup:</strong> Hall must be cleaned and vacated by 12 midnight. Please follow the Hall Closing Checklist below.</p>
+        </div>
+
+        <div class="checklist">
+          <h3>🧹 Hall Closing Checklist</h3>
+          <p><strong>Please ensure all items are completed before leaving:</strong></p>
+          
+          <h4>Entryway</h4>
+          <ul>
+            <li>Floors and carpets swept clean</li>
+            <li>Door wedge left in entryway</li>
+            <li>Double doors to Main Hall closed</li>
+            <li>Entry doors closed and locked</li>
+            <li>Entry door key left at office door, exit via Fire Exit door</li>
+          </ul>
+
+          <h4>Main Hall</h4>
+          <ul>
+            <li>All floors swept and wet mopped</li>
+            <li>Fire door closed and locked</li>
+            <li>Windows closed and locked, blinds closed</li>
+            <li>Chairs washed and nested (50 per trolley)</li>
+            <li>Rectangular tables washed and stored on end in Northwest corner cupboard</li>
+            <li>Round tables washed and stored on edge in dollies (9-10 per dolly) in North wall cupboard</li>
+            <li>Ladder returned to cupboard with round tables</li>
+            <li>Ceiling fans turned off (switch on South wall doorway)</li>
+            <li>Furnace control set to max 25°C during cold months, 15°C when leaving</li>
+            <li>All lights switched off</li>
+          </ul>
+
+          <h4>Kitchen</h4>
+          <ul>
+            <li>Counters and sink left clean</li>
+            <li>Fridge, stovetop and oven left clean</li>
+            <li>Range knobs turned to off position</li>
+            <li>Exhaust hood fan and light turned off</li>
+            <li>Fridge doors closed</li>
+            <li>All dishes removed from dishwasher</li>
+            <li>Garbage containers emptied</li>
+            <li>Wastepaper items in yellow recycling bin outside fire door</li>
+            <li>Plastic and metal recycling in blue bin outside fire door</li>
+            <li>Garbage in green waste bin in parking area</li>
+          </ul>
+
+          <h4>Washrooms</h4>
+          <ul>
+            <li>Floors wet mopped clean</li>
+            <li>Trash bins emptied</li>
+            <li>Paper items in yellow recycling bin outside fire door</li>
+            <li>Garbage (diapers, sanitary products) in green waste bin in parking area</li>
+          </ul>
         </div>
 
         <div style="text-align: center;">
