@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating payment intent for amount:', amount);
 
-    // Create payment intent
+    // Create payment intent with setup_future_usage to save payment method
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'cad',
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: {
         enabled: true,
       },
+      setup_future_usage: 'off_session', // Save payment method for future authorizations
     });
 
     console.log('Payment intent created:', paymentIntent.id);

@@ -30,6 +30,11 @@ export interface Booking {
   updated_at: string
   reminder_sent: boolean
   followup_sent: boolean
+  payment_method_id?: string
+  damage_deposit_amount?: number
+  damage_deposit_authorization_id?: string
+  damage_deposit_authorization_status?: 'pending' | 'authorized' | 'captured' | 'released' | 'expired'
+  damage_deposit_authorized_at?: string
 }
 
 export interface EmailLog {

@@ -658,3 +658,145 @@ function generateFollowUpEmailHTML(bookingData: {
     </html>
   `;
 }
+
+export async function sendDamageDepositAuthNotification(data: {
+  customerName: string;
+  customerEmail: string;
+  bookingRef: string;
+  eventDate: string;
+  damageDepositAmount: number;
+  eventType: string;
+}) {
+  try {
+    await resend.emails.send({
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
+      to: [data.customerEmail],
+      subject: `Damage Deposit Hold Placed - ${data.bookingRef}`,
+      html: generateDamageDepositEmailHTML(data),
+    });
+
+    console.log('Damage deposit notification email sent successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending damage deposit notification email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+function generateDamageDepositEmailHTML(data: {
+  customerName: string;
+  customerEmail: string;
+  bookingRef: string;
+  eventDate: string;
+  damageDepositAmount: number;
+  eventType: string;
+}): string {
+  const eventDate = new Date(data.eventDate).toLocaleDateString('en-CA', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Damage Deposit Hold - Capitol Hill Hall</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2c5aa0; }
+        .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-label { font-weight: bold; }
+        .important { background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1976d2; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .amount { font-size: 24px; font-weight: bold; color: #2c5aa0; text-align: center; padding: 15px; background-color: #e3f2fd; border-radius: 8px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🔒 Damage Deposit Hold Placed</h1>
+        <p>Your event is coming up soon!</p>
+      </div>
+      
+      <div class="content">
+        <h2>Hello ${data.customerName}!</h2>
+        <p>Your <strong>${data.eventType}</strong> at Capitol Hill Hall is scheduled for <strong>${eventDate}</strong>.</p>
+        
+        <p>As part of our standard booking process, we've placed a <strong>temporary hold</strong> on your payment method for the damage deposit.</p>
+
+        <div class="amount">
+          $${data.damageDepositAmount.toFixed(2)} CAD
+        </div>
+
+        <div class="info-box">
+          <h3>📋 What This Means</h3>
+          <div class="detail-row">
+            <span class="detail-label">Hold Type:</span>
+            <span>Temporary Authorization</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Amount:</span>
+            <span>$${data.damageDepositAmount.toFixed(2)} CAD</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span>Authorized (not charged)</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Booking Reference:</span>
+            <span>${data.bookingRef}</span>
+          </div>
+        </div>
+
+        <div class="important">
+          <h3>✅ Important Information</h3>
+          <p><strong>This is a temporary hold, not a charge.</strong> You will see this amount as "pending" on your card, but it has not been charged to your account.</p>
+          
+          <p><strong>What happens next:</strong></p>
+          <ul>
+            <li><strong>If there is no damage:</strong> The hold will be automatically released within 2-4 business days after your event. You will not be charged.</li>
+            <li><strong>If damage occurs:</strong> Only then will the hold be captured (charged) to cover repair or cleaning costs. Any unused portion will be released.</li>
+          </ul>
+
+          <p><strong>Hold Duration:</strong> The hold typically lasts up to 7 days. If we don't capture it, it will automatically expire and disappear from your card.</p>
+        </div>
+
+        <div class="info-box">
+          <h3>🏛️ Hall Care Expectations</h3>
+          <p>To ensure your deposit is fully released, please:</p>
+          <ul>
+            <li>Complete all cleanup tasks per the Hall Closing Checklist</li>
+            <li>Leave the hall in the same condition as you found it</li>
+            <li>Report any accidental damage immediately</li>
+            <li>Ensure all items are removed by midnight</li>
+          </ul>
+          <p style="font-size: 14px; color: #666; margin-top: 10px;">
+            <em>Most events have no issues and the hold is released automatically. We're here to help if you have any questions!</em>
+          </p>
+        </div>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p><strong>💳 Note About Your Card Statement:</strong></p>
+          <p>You may see this as a "pending" transaction on your card. This is normal and expected. The amount is reserved but not charged.</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <p><strong>Questions about the damage deposit?</strong></p>
+          <p>Contact us at: 📧 info@caphillhall.ca | 📞 (604) 500-9505</p>
+        </div>
+
+        <div class="footer">
+          <p><strong>Capitol Hill Hall</strong><br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
+          🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
+          <p><em>Thank you for choosing Capitol Hill Hall!</em></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}

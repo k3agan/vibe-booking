@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendBookingConfirmation } from '../../lib/email';
-import { createBooking, logEmailSent } from '../../../lib/database';
+import { createBooking, logEmailSent, updateBookingPaymentMethod } from '../../../lib/database';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-08-27.basil',
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -160,6 +165,24 @@ Booking Details:
         calendarEventId
       });
       console.log('Booking saved to database:', savedBooking.id);
+
+      // Retrieve payment intent to get the payment method
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const paymentMethodId = paymentIntent.payment_method as string;
+        
+        if (paymentMethodId) {
+          // Calculate damage deposit (50% of rental fee)
+          const damageDepositAmount = calculatedPrice * 0.5;
+          
+          // Save payment method and damage deposit amount
+          await updateBookingPaymentMethod(savedBooking.id, paymentMethodId, damageDepositAmount);
+          console.log(`Payment method saved. Damage deposit will be authorized 3 days before event: $${damageDepositAmount}`);
+        }
+      } catch (paymentMethodError) {
+        console.error('Error saving payment method:', paymentMethodError);
+        // Don't fail the booking if this fails
+      }
     } catch (dbError) {
       console.error('Error saving booking to database:', dbError);
       // Continue with email sending even if DB save fails

@@ -187,6 +187,76 @@ export async function markFollowUpSent(bookingId: string): Promise<void> {
   return markFollowupSent(bookingId);
 }
 
+// Damage deposit operations
+export async function updateBookingPaymentMethod(
+  bookingId: string, 
+  paymentMethodId: string, 
+  damageDepositAmount: number
+) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({
+      payment_method_id: paymentMethodId,
+      damage_deposit_amount: damageDepositAmount
+    })
+    .eq('id', bookingId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating payment method:', error)
+    throw new Error(`Failed to update payment method: ${error.message}`)
+  }
+
+  return data as Booking
+}
+
+export async function getBookingsNeedingDamageDepositAuth(daysAhead: number = 3) {
+  const targetDate = new Date()
+  targetDate.setDate(targetDate.getDate() + daysAhead)
+  const targetDateStr = targetDate.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('selected_date', targetDateStr)
+    .eq('status', 'confirmed')
+    .eq('payment_status', 'succeeded')
+    .eq('damage_deposit_authorization_status', 'pending')
+    .not('payment_method_id', 'is', null)
+
+  if (error) {
+    console.error('Error fetching bookings needing damage deposit auth:', error)
+    return []
+  }
+
+  return data as Booking[]
+}
+
+export async function updateDamageDepositAuthorization(
+  bookingId: string,
+  authorizationId: string,
+  status: 'authorized' | 'captured' | 'released' | 'expired'
+) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({
+      damage_deposit_authorization_id: authorizationId,
+      damage_deposit_authorization_status: status,
+      damage_deposit_authorized_at: new Date().toISOString()
+    })
+    .eq('id', bookingId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating damage deposit authorization:', error)
+    throw new Error(`Failed to update damage deposit authorization: ${error.message}`)
+  }
+
+  return data as Booking
+}
+
 // Analytics functions
 export async function getBookingStats() {
   const { data: totalBookings, error: totalError } = await supabase
