@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendBookingConfirmation } from '../../lib/email';
-import { createBooking, logEmailSent, updateBookingPaymentMethod } from '../../../lib/database';
+import { sendBookingConfirmation, sendDamageDepositAuthNotification } from '../../lib/email';
+import { createBooking, logEmailSent, updateBookingPaymentMethod, updateDamageDepositAuthorization } from '../../../lib/database';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -177,7 +177,63 @@ Booking Details:
           
           // Save payment method and damage deposit amount
           await updateBookingPaymentMethod(savedBooking.id, paymentMethodId, damageDepositAmount);
-          console.log(`Payment method saved. Damage deposit will be authorized 3 days before event: $${damageDepositAmount}`);
+          
+          // Check if event is within 3 days - if so, authorize deposit immediately
+          const eventDate = new Date(dateOnly);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+          const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysUntilEvent <= 3) {
+            console.log(`Event is in ${daysUntilEvent} days - authorizing damage deposit immediately`);
+            
+            try {
+              // Create authorization (hold) for damage deposit
+              const authIntent = await stripe.paymentIntents.create({
+                amount: Math.round(damageDepositAmount * 100), // Convert to cents
+                currency: 'cad',
+                payment_method: paymentMethodId,
+                confirm: false,
+                capture_method: 'manual', // Hold, not charge
+                metadata: {
+                  booking_ref: bookingRef,
+                  booking_id: savedBooking.id,
+                  type: 'damage_deposit',
+                },
+                description: `Damage deposit hold for ${bookingData.eventType} - ${bookingData.name}`,
+              });
+
+              // Confirm the authorization
+              const confirmedIntent = await stripe.paymentIntents.confirm(authIntent.id, {
+                payment_method: paymentMethodId,
+                off_session: true,
+              });
+
+              if (confirmedIntent.status === 'requires_capture') {
+                // Successfully authorized
+                await updateDamageDepositAuthorization(savedBooking.id, confirmedIntent.id, 'authorized');
+                
+                // Send notification email
+                await sendDamageDepositAuthNotification({
+                  customerName: bookingData.name,
+                  customerEmail: bookingData.email,
+                  bookingRef: bookingRef,
+                  eventDate: dateOnly,
+                  damageDepositAmount: damageDepositAmount,
+                  eventType: bookingData.eventType,
+                });
+                
+                console.log(`✅ Damage deposit authorized immediately: $${damageDepositAmount}`);
+              } else {
+                console.error(`Unexpected authorization status: ${confirmedIntent.status}`);
+              }
+            } catch (authError) {
+              console.error('Failed to authorize damage deposit immediately:', authError);
+              // Don't fail the booking - cron will retry in 3 days if needed
+            }
+          } else {
+            console.log(`Event is in ${daysUntilEvent} days - damage deposit will be authorized by cron job 3 days before`);
+          }
         }
       } catch (paymentMethodError) {
         console.error('Error saving payment method:', paymentMethodError);
