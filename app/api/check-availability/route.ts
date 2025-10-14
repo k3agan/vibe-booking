@@ -1,5 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { fromZonedTime } from 'date-fns-tz';
 
 // Initialize Google Calendar API
 const calendar = google.calendar({ version: 'v3' });
@@ -49,15 +50,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate start and end times
+    const vancouverTimezone = 'America/Vancouver';
     let startDateTime, endDateTime;
     
     if (bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM (ignore user-provided start time)
-      startDateTime = new Date(`${selectedDate}T08:00:00`);
-      endDateTime = new Date(`${selectedDate}T23:00:00`);
+      // Full day: 8 AM to 11 PM Pacific Time (ignore user-provided start time)
+      // Create dates in Vancouver timezone and convert to UTC
+      const startTimeStr = `${selectedDate} 08:00:00`;
+      const endTimeStr = `${selectedDate} 23:00:00`;
+      
+      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
+      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
     } else {
-      // Hourly: use user-provided start time and add duration
-      startDateTime = new Date(`${selectedDate}T${startTime}:00`);
+      // Hourly: use user-provided start time and add duration in Pacific Time
+      const startTimeStr = `${selectedDate} ${startTime}:00`;
+      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
       endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendBookingConfirmation, sendDamageDepositAuthNotification } from '../../lib/email';
 import { createBooking, logEmailSent, updateBookingPaymentMethod, updateDamageDepositAuthorization } from '../../../lib/database';
 import Stripe from 'stripe';
+import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-08-27.basil',
@@ -34,15 +35,21 @@ export async function POST(request: NextRequest) {
     // Calculate event times
     // Extract just the date part (YYYY-MM-DD) from the selectedDate
     const dateOnly = bookingData.selectedDate.split('T')[0];
+    const vancouverTimezone = 'America/Vancouver';
     let startDateTime, endDateTime;
     
     if (bookingData.bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM (ignore user-provided start time)
-      startDateTime = new Date(`${dateOnly}T08:00:00`);
-      endDateTime = new Date(`${dateOnly}T23:00:00`);
+      // Full day: 8 AM to 11 PM Pacific Time (ignore user-provided start time)
+      // Create dates in Vancouver timezone and convert to UTC
+      const startTimeStr = `${dateOnly} 08:00:00`;
+      const endTimeStr = `${dateOnly} 23:00:00`;
+      
+      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
+      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
     } else {
-      // Hourly: use user-provided start time and add duration
-      startDateTime = new Date(`${dateOnly}T${bookingData.startTime}:00`);
+      // Hourly: use user-provided start time and add duration in Pacific Time
+      const startTimeStr = `${dateOnly} ${bookingData.startTime}:00`;
+      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
       endDateTime = new Date(startDateTime.getTime() + (bookingData.duration * 60 * 60 * 1000));
     }
 
