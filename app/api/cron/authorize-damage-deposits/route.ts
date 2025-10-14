@@ -18,11 +18,25 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('🔒 Starting damage deposit authorization cron job...');
+    
+    // Log what date we're looking for
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 3);
+    console.log(`Looking for bookings on: ${targetDate.toISOString().split('T')[0]}`);
 
     // Get bookings that are 3 days away and need damage deposit authorization
     const bookings = await getBookingsNeedingDamageDepositAuth(3);
 
     console.log(`Found ${bookings.length} booking(s) needing damage deposit authorization`);
+    
+    if (bookings.length > 0) {
+      console.log('Bookings to process:', bookings.map(b => ({
+        ref: b.booking_ref,
+        date: b.selected_date,
+        paymentMethodId: b.payment_method_id ? 'present' : 'missing',
+        depositAmount: b.damage_deposit_amount
+      })));
+    }
 
     let successCount = 0;
     let failureCount = 0;

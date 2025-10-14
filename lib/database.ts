@@ -222,7 +222,7 @@ export async function getBookingsNeedingDamageDepositAuth(daysAhead: number = 3)
     .eq('selected_date', targetDateStr)
     .eq('status', 'confirmed')
     .eq('payment_status', 'succeeded')
-    .eq('damage_deposit_authorization_status', 'pending')
+    .or('damage_deposit_authorization_status.eq.pending,damage_deposit_authorization_status.is.null')
     .not('payment_method_id', 'is', null)
 
   if (error) {
