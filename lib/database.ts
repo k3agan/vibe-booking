@@ -212,9 +212,17 @@ export async function updateBookingPaymentMethod(
 }
 
 export async function getBookingsNeedingDamageDepositAuth(daysAhead: number = 3) {
-  const targetDate = new Date()
-  targetDate.setDate(targetDate.getDate() + daysAhead)
-  const targetDateStr = targetDate.toISOString().split('T')[0]
+  // Use proper timezone handling for date calculation
+  const vancouverTimezone = 'America/Vancouver';
+  const today = new Date();
+  const todayVancouver = new Date(today.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+  todayVancouver.setHours(0, 0, 0, 0); // Reset to start of day
+  
+  const targetDate = new Date(todayVancouver);
+  targetDate.setDate(targetDate.getDate() + daysAhead);
+  const targetDateStr = targetDate.toISOString().split('T')[0];
+
+  console.log(`Looking for bookings on ${targetDateStr} (${daysAhead} days from today in Vancouver timezone)`);
 
   const { data, error } = await supabase
     .from('bookings')

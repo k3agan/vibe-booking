@@ -19,10 +19,15 @@ export async function GET(request: NextRequest) {
 
     console.log('🔒 Starting damage deposit authorization cron job...');
     
-    // Log what date we're looking for
-    const targetDate = new Date();
+    // Log what date we're looking for (using Vancouver timezone)
+    const vancouverTimezone = 'America/Vancouver';
+    const today = new Date();
+    const todayVancouver = new Date(today.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+    todayVancouver.setHours(0, 0, 0, 0);
+    
+    const targetDate = new Date(todayVancouver);
     targetDate.setDate(targetDate.getDate() + 3);
-    console.log(`Looking for bookings on: ${targetDate.toISOString().split('T')[0]}`);
+    console.log(`Looking for bookings on: ${targetDate.toISOString().split('T')[0]} (3 days from today in Vancouver timezone)`);
 
     // Get bookings that are 3 days away and need damage deposit authorization
     const bookings = await getBookingsNeedingDamageDepositAuth(3);
