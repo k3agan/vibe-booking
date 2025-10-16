@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { format, toZonedTime } from 'date-fns-tz';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -108,25 +109,17 @@ export async function sendPostEventFollowUp(bookingData: {
 
 function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
+  const vancouverTimezone = 'America/Vancouver';
   
-  const startDate = new Date(startDateTime).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Convert UTC times to Vancouver timezone for display
+  const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
+  const endDateVancouver = toZonedTime(new Date(endDateTime), vancouverTimezone);
   
-  const startTime = new Date(startDateTime).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startDate = format(startDateVancouver, 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
   
-  const endTime = new Date(endDateTime).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startTime = format(startDateVancouver, 'h:mm a', { timeZone: vancouverTimezone });
+  
+  const endTime = format(endDateVancouver, 'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
@@ -227,25 +220,17 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
 
 function generateManagementEmailHTML(confirmation: BookingConfirmation): string {
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
+  const vancouverTimezone = 'America/Vancouver';
   
-  const startDate = new Date(startDateTime).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  // Convert UTC times to Vancouver timezone for display
+  const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
+  const endDateVancouver = toZonedTime(new Date(endDateTime), vancouverTimezone);
   
-  const startTime = new Date(startDateTime).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startDate = format(startDateVancouver, 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
   
-  const endTime = new Date(endDateTime).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startTime = format(startDateVancouver, 'h:mm a', { timeZone: vancouverTimezone });
+  
+  const endTime = format(endDateVancouver, 'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
@@ -327,24 +312,14 @@ function generateReminderEmailHTML(bookingData: {
   specialRequirements?: string;
   organization?: string;
 }): string {
-  const eventDate = new Date(bookingData.selectedDate).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const vancouverTimezone = 'America/Vancouver';
   
-  const startTime = new Date(`${bookingData.selectedDate}T${bookingData.startTime}:00`).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  // Create dates in Vancouver timezone for proper display
+  const eventDate = format(new Date(bookingData.selectedDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
   
-  const endTime = new Date(`${bookingData.selectedDate}T${bookingData.endTime}:00`).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startTime = format(new Date(`2000-01-01T${bookingData.startTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
+  
+  const endTime = format(new Date(`2000-01-01T${bookingData.endTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
@@ -517,24 +492,14 @@ function generateFollowUpEmailHTML(bookingData: {
   specialRequirements?: string;
   organization?: string;
 }): string {
-  const eventDate = new Date(bookingData.selectedDate).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const vancouverTimezone = 'America/Vancouver';
   
-  const startTime = new Date(`${bookingData.selectedDate}T${bookingData.startTime}:00`).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  // Create dates in Vancouver timezone for proper display
+  const eventDate = format(new Date(bookingData.selectedDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
   
-  const endTime = new Date(`${bookingData.selectedDate}T${bookingData.endTime}:00`).toLocaleTimeString('en-CA', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+  const startTime = format(new Date(`2000-01-01T${bookingData.startTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
+  
+  const endTime = format(new Date(`2000-01-01T${bookingData.endTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
@@ -691,12 +656,10 @@ function generateDamageDepositEmailHTML(data: {
   damageDepositAmount: number;
   eventType: string;
 }): string {
-  const eventDate = new Date(data.eventDate).toLocaleDateString('en-CA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const vancouverTimezone = 'America/Vancouver';
+  
+  // Create date in Vancouver timezone for proper display
+  const eventDate = format(new Date(data.eventDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>

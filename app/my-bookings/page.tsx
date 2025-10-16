@@ -28,6 +28,7 @@ import {
   Cancel as CancelIcon,
   Event as EventIcon
 } from '@mui/icons-material';
+import { format } from 'date-fns-tz';
 
 interface Booking {
   id: string;
@@ -95,20 +96,13 @@ export default function MyBookingsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-CA', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const vancouverTimezone = 'America/Vancouver';
+    return format(new Date(dateString), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
   };
 
   const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-CA', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    const vancouverTimezone = 'America/Vancouver';
+    return format(new Date(`2000-01-01T${timeString}`), 'h:mm a', { timeZone: vancouverTimezone });
   };
 
   const getStatusColor = (status: string) => {
