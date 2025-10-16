@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { toZonedTime, format } from 'date-fns-tz';
 
 // Initialize Google Calendar API
 const calendar = google.calendar({ version: 'v3' });
@@ -84,8 +85,8 @@ ${bookingData.specialRequirements ? `Special Requirements: ${bookingData.special
 
 Booking Details:
 - Duration: ${bookingData.bookingType === 'hourly' ? `${bookingData.duration} hours` : 'Full day'}
-- Start Time: ${new Date(startTime).toLocaleString()}
-- End Time: ${new Date(endTime).toLocaleString()}
+- Start Time: ${format(toZonedTime(new Date(startTime), 'America/Vancouver'), 'MMM d, yyyy h:mm a', { timeZone: 'America/Vancouver' })}
+- End Time: ${format(toZonedTime(new Date(endTime), 'America/Vancouver'), 'MMM d, yyyy h:mm a', { timeZone: 'America/Vancouver' })}
     `.trim();
 
     // Create the calendar event
