@@ -65,7 +65,11 @@ export async function POST(request: NextRequest) {
       // Hourly: use user-provided start time and add duration in Pacific Time
       const startTimeStr = `${selectedDate} ${startTime}:00`;
       startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+      
+      // Calculate end time by adding duration to start time in Pacific timezone
+      const endTimeStr = `${selectedDate} ${startTime}:00`;
+      const endTimeDate = fromZonedTime(endTimeStr, vancouverTimezone);
+      endDateTime = new Date(endTimeDate.getTime() + (duration * 60 * 60 * 1000));
     }
 
     const authClient = await auth.getClient();

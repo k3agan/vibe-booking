@@ -50,7 +50,11 @@ export async function POST(request: NextRequest) {
       // Hourly: use user-provided start time and add duration in Pacific Time
       const startTimeStr = `${dateOnly} ${bookingData.startTime}:00`;
       startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      endDateTime = new Date(startDateTime.getTime() + (bookingData.duration * 60 * 60 * 1000));
+      
+      // Calculate end time by adding duration to start time in Pacific timezone
+      const endTimeStr = `${dateOnly} ${bookingData.startTime}:00`;
+      const endTimeDate = fromZonedTime(endTimeStr, vancouverTimezone);
+      endDateTime = new Date(endTimeDate.getTime() + (bookingData.duration * 60 * 60 * 1000));
     }
 
     console.log('Date calculation:', {
@@ -164,7 +168,7 @@ Booking Details:
         specialRequirements: bookingData.specialRequirements,
         selectedDate: dateOnly,
         startTime: bookingData.startTime,
-        endTime: endDateTime.toTimeString().split(' ')[0],
+        endTime: format(toZonedTime(endDateTime, vancouverTimezone), 'HH:mm', { timeZone: vancouverTimezone }),
         bookingType: bookingData.bookingType,
         duration: bookingData.duration,
         calculatedPrice,
