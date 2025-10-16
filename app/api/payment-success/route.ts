@@ -190,19 +190,36 @@ Booking Details:
           await updateBookingPaymentMethod(savedBooking.id, paymentMethodId, damageDepositAmount);
           
           // Check if event is within 3 days - if so, authorize deposit immediately
-          const eventDate = new Date(dateOnly);
+          const vancouverTimezone = 'America/Vancouver';
+          const eventDate = fromZonedTime(`${dateOnly} 00:00:00`, vancouverTimezone);
           const today = new Date();
-          today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
-          const daysUntilEvent = Math.ceil((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const todayVancouver = toZonedTime(today, vancouverTimezone);
+          todayVancouver.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+          const daysUntilEvent = Math.ceil((eventDate.getTime() - todayVancouver.getTime()) / (1000 * 60 * 60 * 24));
           
           if (daysUntilEvent <= 3) {
             console.log(`Event is in ${daysUntilEvent} days - authorizing damage deposit immediately`);
             
             try {
+              // Try to find existing customer by email for damage deposit authorization
+              let customerId;
+              try {
+                const existingCustomers = await stripe.customers.list({
+                  email: bookingData.email,
+                  limit: 1,
+                });
+                if (existingCustomers.data.length > 0) {
+                  customerId = existingCustomers.data[0].id;
+                }
+              } catch (customerError) {
+                console.log('Could not find customer for damage deposit, proceeding without customer association');
+              }
+
               // Create authorization (hold) for damage deposit
               const authIntent = await stripe.paymentIntents.create({
                 amount: Math.round(damageDepositAmount * 100), // Convert to cents
                 currency: 'cad',
+                customer: customerId, // Associate with customer if found
                 payment_method: paymentMethodId,
                 confirm: false,
                 capture_method: 'manual', // Hold, not charge
