@@ -46,11 +46,26 @@ export async function GET(request: NextRequest) {
       try {
         console.log(`Processing booking ${booking.booking_ref} for ${booking.customer_name}`);
 
+        // Try to find existing customer by email
+        let customerId;
+        try {
+          const existingCustomers = await stripe.customers.list({
+            email: booking.customer_email,
+            limit: 1,
+          });
+          if (existingCustomers.data.length > 0) {
+            customerId = existingCustomers.data[0].id;
+            console.log(`Found existing customer for ${booking.customer_email}: ${customerId}`);
+          }
+        } catch (customerError) {
+          console.log('Could not find customer, proceeding without customer association');
+        }
+
         // Create authorization (hold) for damage deposit
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(booking.damage_deposit_amount! * 100), // Convert to cents
           currency: 'cad',
-          customer: undefined, // We're using payment_method directly
+          customer: customerId, // Associate with customer if found
           payment_method: booking.payment_method_id!,
           confirm: false, // Don't capture immediately - just authorize
           capture_method: 'manual', // Important: Manual capture means it's a hold

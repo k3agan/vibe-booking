@@ -28,10 +28,50 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating payment intent for amount:', amount);
 
+    // Create or retrieve Stripe customer
+    let customer;
+    try {
+      // First, try to find existing customer by email
+      const existingCustomers = await stripe.customers.list({
+        email: bookingData.email,
+        limit: 1,
+      });
+
+      if (existingCustomers.data.length > 0) {
+        // Update existing customer with latest information
+        customer = await stripe.customers.update(existingCustomers.data[0].id, {
+          name: bookingData.name,
+          email: bookingData.email,
+          phone: bookingData.phone,
+          metadata: {
+            organization: bookingData.organization || '',
+            last_booking_date: bookingData.selectedDate,
+          },
+        });
+        console.log('Updated existing customer:', customer.id);
+      } else {
+        // Create new customer
+        customer = await stripe.customers.create({
+          name: bookingData.name,
+          email: bookingData.email,
+          phone: bookingData.phone,
+          metadata: {
+            organization: bookingData.organization || '',
+            first_booking_date: bookingData.selectedDate,
+          },
+        });
+        console.log('Created new customer:', customer.id);
+      }
+    } catch (customerError) {
+      console.error('Error creating/updating customer:', customerError);
+      // Continue without customer if there's an error
+    }
+
     // Create payment intent with setup_future_usage to save payment method
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'cad',
+      customer: customer?.id, // Associate with customer if created
       metadata: {
         bookingData: JSON.stringify(bookingData),
       },
