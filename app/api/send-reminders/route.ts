@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUpcomingBookings, markReminderSent, logEmailSent } from '../../../lib/database';
 import { sendEventReminder } from '../../lib/email';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +20,10 @@ export async function POST(request: NextRequest) {
       }
       
       // Check if booking is within 24-48 hours
-      const eventDate = new Date(booking.selected_date);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
       const now = new Date();
-      const hoursUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       
       // Send reminder if event is between 24-48 hours away
       if (hoursUntilEvent >= 24 && hoursUntilEvent <= 48) {
@@ -116,9 +118,10 @@ export async function GET(request: NextRequest) {
     const upcomingBookings = await getUpcomingBookings(7); // Next 7 days
     
     const bookingsWithReminderStatus = upcomingBookings.map(booking => {
-      const eventDate = new Date(booking.selected_date);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
       const now = new Date();
-      const hoursUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       
       return {
         bookingRef: booking.booking_ref,

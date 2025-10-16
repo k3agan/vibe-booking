@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCompletedBookings, markFollowUpSent, logEmailSent } from '../../../lib/database';
 import { sendPostEventFollowUp } from '../../lib/email';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +20,10 @@ export async function POST(request: NextRequest) {
       }
       
       // Check if booking completed 1-2 days ago
-      const eventDate = new Date(booking.selected_date);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventEndDateTime = fromZonedTime(`${booking.selected_date} ${booking.end_time}:00`, vancouverTimezone);
       const now = new Date();
-      const daysSinceEvent = (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceEvent = (now.getTime() - eventEndDateTime.getTime()) / (1000 * 60 * 60 * 24);
       
       // Send follow-up if event was 1-2 days ago
       if (daysSinceEvent >= 1 && daysSinceEvent <= 2) {
@@ -116,9 +118,10 @@ export async function GET(request: NextRequest) {
     const completedBookings = await getCompletedBookings(7); // Last 7 days
     
     const bookingsWithFollowUpStatus = completedBookings.map(booking => {
-      const eventDate = new Date(booking.selected_date);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventEndDateTime = fromZonedTime(`${booking.selected_date} ${booking.end_time}:00`, vancouverTimezone);
       const now = new Date();
-      const daysSinceEvent = (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceEvent = (now.getTime() - eventEndDateTime.getTime()) / (1000 * 60 * 60 * 24);
       
       return {
         bookingRef: booking.booking_ref,

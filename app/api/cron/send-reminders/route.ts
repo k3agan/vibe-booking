@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUpcomingBookings, markReminderSent, logEmailSent } from '../../../../lib/database';
 import { sendEventReminder } from '../../../lib/email';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,8 @@ export async function GET(request: NextRequest) {
       }
       
       // Calculate hours until event
-      const eventDateTime = new Date(`${booking.selected_date}T${booking.start_time}`);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
       const now = new Date();
       const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCompletedBookings, logEmailSent, markFollowupSent } from '../../../../lib/database';
 import { sendPostEventFollowUp } from '../../../lib/email';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,9 +23,10 @@ export async function GET(request: NextRequest) {
 
     for (const booking of completedBookings) {
       // Ensure the event actually ended and is within the 1-2 day window
-      const eventEndDate = new Date(`${booking.selected_date}T${booking.end_time}`);
+      const vancouverTimezone = 'America/Vancouver';
+      const eventEndDateTime = fromZonedTime(`${booking.selected_date} ${booking.end_time}:00`, vancouverTimezone);
       const now = new Date();
-      const diffHours = (now.getTime() - eventEndDate.getTime()) / (1000 * 60 * 60);
+      const diffHours = (now.getTime() - eventEndDateTime.getTime()) / (1000 * 60 * 60);
 
       // Send follow-up if event ended between 24 and 48 hours ago and follow-up not sent
       if (diffHours > 24 && diffHours <= 48 && !booking.followup_sent) {
