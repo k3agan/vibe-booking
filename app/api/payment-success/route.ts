@@ -3,8 +3,9 @@ import { sendBookingConfirmation, sendDamageDepositAuthNotification } from '../.
 import { createBooking, logEmailSent, updateBookingPaymentMethod, updateDamageDepositAuthorization } from '../../../lib/database';
 import Stripe from 'stripe';
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
+import { getStripeApiKey } from '@/lib/api-key-rotation';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
 });
 

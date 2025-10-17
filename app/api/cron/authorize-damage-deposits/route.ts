@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getBookingsNeedingDamageDepositAuth, updateDamageDepositAuthorization, logEmailSent } from '../../../../lib/database';
 import { sendDamageDepositAuthNotification } from '../../../lib/email';
+import { getStripeApiKey } from '@/lib/api-key-rotation';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
 });
 

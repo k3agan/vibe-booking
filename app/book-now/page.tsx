@@ -33,9 +33,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import RentalAgreement from '../components/RentalAgreement';
-
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+import { useStripeConfig } from '../hooks/useStripeConfig';
 
 // Payment Form Component
 function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
@@ -167,6 +165,8 @@ function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
 }
 
 export default function BookNowPage() {
+  const { stripe, isLoading: isStripeLoading, error: stripeError } = useStripeConfig();
+  
   const [formData, setFormData] = useState({
     // Contact Information
     name: '',
@@ -389,9 +389,40 @@ export default function BookNowPage() {
     );
   }
 
+  // Show loading state while Stripe is initializing
+  if (isStripeLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          Book the Hall
+        </Typography>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6">Loading payment system...</Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  // Show error state if Stripe failed to load
+  if (stripeError) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          Book the Hall
+        </Typography>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Payment system error: {stripeError}
+        </Alert>
+        <Typography variant="body1">
+          Please refresh the page or contact support if the issue persists.
+        </Typography>
+      </Container>
+    );
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Elements stripe={stripePromise}>
+      <Elements stripe={stripe}>
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h3" component="h1" gutterBottom>
           Book the Hall
@@ -648,9 +679,9 @@ export default function BookNowPage() {
                     ✓ Rental agreement accepted. Proceed with secure payment to confirm your booking.
                   </Alert>
                   <Typography variant="body2" sx={{ mb: 2 }}>
-                    Stripe Key: {process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'Set' : 'Not Set'}
+                    Payment System: {stripeError ? 'Error' : 'Ready'}
                   </Typography>
-                  <Elements stripe={stripePromise}>
+                  <Elements stripe={stripe}>
                     <PaymentForm
                       formData={formData}
                       calculatedPrice={calculatedPrice}

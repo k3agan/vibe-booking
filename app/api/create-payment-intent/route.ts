@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getStripeApiKey } from '@/lib/api-key-rotation';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
 });
 
 export async function POST(request: NextRequest) {
   try {
     // Check if Stripe is configured
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const stripeKey = getStripeApiKey();
+    if (!stripeKey) {
       console.error('STRIPE_SECRET_KEY not configured');
       return NextResponse.json(
         { error: 'Payment system not configured. Please contact support.' },
