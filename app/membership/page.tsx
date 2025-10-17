@@ -1,5 +1,7 @@
-import React from 'react';
-import { Container, Typography, Box, Paper, Grid, Card, CardContent, Button, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+'use client';
+
+import React, { useState } from 'react';
+import { Container, Typography, Box, Paper, Grid, Card, CardContent, Button, List, ListItem, ListItemIcon, ListItemText, Divider, TextField, Alert } from '@mui/material';
 import { 
   GroupAdd, 
   CalendarToday, 
@@ -14,8 +16,44 @@ import {
 import ScrollableCalendar from '../components/ScrollableCalendar';
 
 export default function MembershipPage() {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      // Use MailerLite's API to subscribe the user
+      const response = await fetch('/api/subscribe-mailing-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitStatus('success');
+        setEmail('');
+      } else {
+        throw new Error('Failed to subscribe');
+      }
+    } catch (error) {
+      console.error('Error subscribing to mailing list:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h3" component="h1" gutterBottom align="center">
         Join Our Community
       </Typography>
@@ -27,6 +65,96 @@ export default function MembershipPage() {
       <Typography variant="body1" paragraph sx={{ textAlign: 'center', fontSize: '1.1rem', color: 'text.secondary' }}>
         Help preserve and support your community hall while connecting with neighbors and making a difference in Burnaby.
       </Typography>
+
+      {/* Mailing List Signup */}
+      <Paper elevation={2} sx={{ p: 4, mb: 4, bgcolor: 'grey.50' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Email sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+          <Typography variant="h5" gutterBottom>
+            Stay Connected
+          </Typography>
+          <Typography variant="body1" paragraph>
+            Can't make it to meetings? Join our mailing list to stay informed about:
+          </Typography>
+          
+          <List sx={{ maxWidth: 400, mx: 'auto' }}>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircle color="primary" />
+              </ListItemIcon>
+              <ListItemText primary="Meeting announcements and minutes" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircle color="primary" />
+              </ListItemIcon>
+              <ListItemText primary="Community events and activities" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircle color="primary" />
+              </ListItemIcon>
+              <ListItemText primary="Hall maintenance updates" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircle color="primary" />
+              </ListItemIcon>
+              <ListItemText primary="Volunteer opportunities" />
+            </ListItem>
+          </List>
+
+          <Box sx={{ mt: 3 }}>
+            <form onSubmit={handleSubmit}>
+              <TextField
+                fullWidth
+                type="email"
+                label="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                sx={{ mb: 2 }}
+                placeholder="Enter your email address"
+              />
+              
+              {submitStatus === 'success' && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Thank you for subscribing! You've been added to our mailing list.
+                </Alert>
+              )}
+              
+              {submitStatus === 'error' && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  There was an error subscribing to our mailing list. Please try again or contact us directly.
+                </Alert>
+              )}
+              
+              <Button 
+                type="submit"
+                variant="contained" 
+                size="large"
+                startIcon={<Email />}
+                disabled={isSubmitting || !email}
+                sx={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                  },
+                  '&:disabled': {
+                    background: '#ccc',
+                  }
+                }}
+              >
+                {isSubmitting ? 'Subscribing...' : 'Become a Member'}
+              </Button>
+            </form>
+          </Box>
+          
+          <Typography variant="caption" display="block" sx={{ mt: 2, color: 'text.secondary' }}>
+            Enter your email above to join our mailing list and stay updated on community events
+          </Typography>
+        </Box>
+      </Paper>
 
       {/* Meeting Information Card */}
       <Paper elevation={3} sx={{ p: 4, mb: 4, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
@@ -171,67 +299,6 @@ export default function MembershipPage() {
         </Grid>
       </Paper>
 
-      {/* Mailing List Signup */}
-      <Paper elevation={2} sx={{ p: 4, mb: 4, bgcolor: 'grey.50' }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <Email sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-          <Typography variant="h5" gutterBottom>
-            Stay Connected
-          </Typography>
-          <Typography variant="body1" paragraph>
-            Can't make it to meetings? Join our mailing list to stay informed about:
-          </Typography>
-          
-          <List sx={{ maxWidth: 400, mx: 'auto' }}>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircle color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Meeting announcements and minutes" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircle color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Community events and activities" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircle color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Hall maintenance updates" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircle color="primary" />
-              </ListItemIcon>
-              <ListItemText primary="Volunteer opportunities" />
-            </ListItem>
-          </List>
-
-          <Box sx={{ mt: 3 }}>
-            <Button 
-              variant="contained" 
-              size="large"
-              startIcon={<Email />}
-              href="mailto:info@caphillhall.ca?subject=Join Mailing List&body=Please add me to the Capitol Hill Community Hall Association mailing list. My name is [Your Name] and my email is [Your Email]."
-              sx={{ 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
-                }
-              }}
-            >
-              Join Mailing List
-            </Button>
-          </Box>
-          
-          <Typography variant="caption" display="block" sx={{ mt: 2, color: 'text.secondary' }}>
-            Click the button above to send us an email and we'll add you to our mailing list
-          </Typography>
-        </Box>
-      </Paper>
-
       {/* Contact Information */}
       <Paper elevation={1} sx={{ p: 3, textAlign: 'center' }}>
         <Typography variant="h6" gutterBottom>
@@ -245,5 +312,6 @@ export default function MembershipPage() {
         </Typography>
       </Paper>
     </Container>
+    </>
   );
 }
