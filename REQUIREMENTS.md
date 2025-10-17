@@ -53,7 +53,7 @@ Optional: Section highlighting upcoming public events or spotlighting a supporte
 Capacity (e.g., seated, standing)
 Dimensions / Square footage
 Available furniture (tables, chairs - quantity/type)
-Kitchen facilities (details: oven, fridge, sink, microwave, etc.)
+Kitchen facilities (details: oven, fridge, sink, dishwasher, etc.)
 AV equipment (projector, screen, sound system, WiFi details)
 Washroom facilities
 Accessibility features (ramps, accessible washrooms, etc.)
