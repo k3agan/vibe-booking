@@ -1,4 +1,5 @@
 import { Seam } from 'seam';
+import { fromZonedTime } from 'date-fns-tz';
 
 // Initialize Seam client
 const seam = new Seam({
@@ -25,6 +26,11 @@ export async function createAccessCode(bookingData: {
   endTime: string;
 }): Promise<AccessCodeResult> {
   try {
+    // Validate input parameters
+    if (!bookingData.customerName || !bookingData.selectedDate || !bookingData.startTime || !bookingData.endTime) {
+      throw new Error('Missing required booking data: customerName, selectedDate, startTime, endTime');
+    }
+
     // Validate required environment variables
     if (!process.env.SEAM_API_KEY) {
       throw new Error('SEAM_API_KEY environment variable is not set');
@@ -37,12 +43,12 @@ export async function createAccessCode(bookingData: {
     // 15 minutes before start_time to 15 minutes after end_time
     const vancouverTimezone = 'America/Vancouver';
     
-    // Create start time (15 minutes before booking start)
-    const startDateTime = new Date(`${bookingData.selectedDate}T${bookingData.startTime}:00`);
-    const accessCodeStart = new Date(startDateTime.getTime() - 15 * 60 * 1000); // 15 minutes before
+    // Parse dates in Vancouver timezone, then add/subtract 15 minutes
+    const startDateTime = fromZonedTime(`${bookingData.selectedDate}T${bookingData.startTime}:00`, vancouverTimezone);
+    const endDateTime = fromZonedTime(`${bookingData.selectedDate}T${bookingData.endTime}:00`, vancouverTimezone);
     
-    // Create end time (15 minutes after booking end)
-    const endDateTime = new Date(`${bookingData.selectedDate}T${bookingData.endTime}:00`);
+    // Calculate access code validity window (15 minutes before/after in Vancouver time)
+    const accessCodeStart = new Date(startDateTime.getTime() - 15 * 60 * 1000); // 15 minutes before
     const accessCodeEnd = new Date(endDateTime.getTime() + 15 * 60 * 1000); // 15 minutes after
 
     console.log(`Creating access code for ${bookingData.customerName}:`);
@@ -57,6 +63,10 @@ export async function createAccessCode(bookingData: {
       starts_at: accessCodeStart.toISOString(),
       ends_at: accessCodeEnd.toISOString(),
     });
+
+    if (!accessCode.code) {
+      throw new Error('Seam API returned access code but code is null/undefined');
+    }
 
     console.log(`✅ Access code created successfully: ${accessCode.code}`);
 
@@ -87,14 +97,14 @@ export async function deleteAccessCodesForBooking(customerName: string, oldDate:
     }
 
     // List all access codes for the lock
-    const accessCodes = await seam.accessCodes.list({
+    const accessCodesResponse = await seam.accessCodes.list({
       device_id: LOCK_ID,
     });
 
     // Find codes that match the customer name and old date
-    const codesToDelete = accessCodes.access_codes.filter(code => 
+    const codesToDelete = (accessCodesResponse as any).access_codes?.filter((code: any) => 
       code.name?.includes(`${customerName} - ${oldDate}`)
-    );
+    ) || [];
 
     // Delete matching codes
     for (const code of codesToDelete) {
