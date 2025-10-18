@@ -10,6 +10,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Icon for booking button
 // Removed SendIcon
 import { hallInfo } from '../data/hallInfo';
+import { trackGenerateLead } from '../../lib/gtm-events';
 
 // Removed Server Action (sendContactEmail function)
 
