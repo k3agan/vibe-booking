@@ -97,7 +97,7 @@ export function calculateDaysUntilEvent(eventDate: string): number {
  * @returns Formatted conversion data ready for API submission
  */
 export function formatConversionData(conversionData: ConversionData) {
-  const formatted = {
+  const formatted: any = {
     transaction_id: conversionData.transaction_id,
     value: conversionData.value,
     currency: conversionData.currency,

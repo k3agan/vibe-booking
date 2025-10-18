@@ -46,11 +46,7 @@ export interface SelectContentEvent extends GTMEvent {
   item_id?: string;
 }
 
-export interface GenerateLeadEvent extends GTMEvent {
-  event: 'generate_lead';
-  currency: string;
-  value?: number;
-}
+// Removed GenerateLeadEvent - not needed
 
 /**
  * Push event to GTM dataLayer
@@ -140,20 +136,7 @@ export function trackSelectContent(contentType: string, itemId?: string): void {
   pushToDataLayer(event);
 }
 
-/**
- * Track lead generation (contact form, phone click)
- * @param currency - Currency code
- * @param value - Optional lead value
- */
-export function trackGenerateLead(currency: string = 'CAD', value?: number): void {
-  const event: GenerateLeadEvent = {
-    event: 'generate_lead',
-    currency,
-    value
-  };
-  
-  pushToDataLayer(event);
-}
+// Removed trackGenerateLead - not needed
 
 /**
  * Track custom event

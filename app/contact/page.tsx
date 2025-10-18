@@ -10,7 +10,6 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Icon for booking button
 // Removed SendIcon
 import { hallInfo } from '../data/hallInfo';
-import { trackGenerateLead } from '../../lib/gtm-events';
 
 // Removed Server Action (sendContactEmail function)
 
@@ -55,13 +54,7 @@ export default function ContactPage() {
                   primary="Phone" 
                   secondary={
                     <Box>
-                      <MuiLink 
-                        href={`tel:${hallInfo.phone}`}
-                        onClick={() => trackGenerateLead('CAD')}
-                        sx={{ textDecoration: 'none', color: 'inherit' }}
-                      >
-                        {hallInfo.phone}
-                      </MuiLink>
+                      {hallInfo.phone}
                       <Typography variant="caption" display="block" sx={{ color: 'warning.main', mt: 0.5 }}>
                         ⚠️ May have interruptions due to staffing availability
                       </Typography>
