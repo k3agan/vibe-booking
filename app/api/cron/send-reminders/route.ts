@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUpcomingBookings, markReminderSent, logEmailSent } from '../../../../lib/database';
 import { sendEventReminder } from '../../../lib/email';
+import { createAccessCode, sendAdminAlert } from '../../../../lib/seam';
 import { fromZonedTime } from 'date-fns-tz';
 
 export async function GET(request: NextRequest) {
@@ -39,6 +40,33 @@ export async function GET(request: NextRequest) {
       if (hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
         console.log(`[CRON] Sending reminder for booking ${booking.booking_ref} (${hoursUntilEvent.toFixed(1)}h until event)`);
         
+        // Attempt to create access code
+        let accessCode: string | undefined;
+        const accessCodeResult = await createAccessCode({
+          customerName: booking.customer_name,
+          selectedDate: booking.selected_date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+        });
+
+        if (accessCodeResult.success && accessCodeResult.accessCode) {
+          accessCode = accessCodeResult.accessCode;
+          console.log(`[CRON] Access code created for ${booking.booking_ref}: ${accessCode}`);
+        } else {
+          console.error(`[CRON] Failed to create access code for ${booking.booking_ref}:`, accessCodeResult.error);
+          
+          // Send admin alert for access code failure
+          await sendAdminAlert({
+            bookingRef: booking.booking_ref,
+            customerName: booking.customer_name,
+            customerEmail: booking.customer_email,
+            selectedDate: booking.selected_date,
+            startTime: booking.start_time,
+            endTime: booking.end_time,
+            error: accessCodeResult.error || 'Unknown error',
+          });
+        }
+        
         const emailResult = await sendEventReminder({
           bookingRef: booking.booking_ref,
           customerName: booking.customer_name,
@@ -50,6 +78,7 @@ export async function GET(request: NextRequest) {
           guestCount: booking.guest_count,
           specialRequirements: booking.special_requirements || undefined,
           organization: booking.organization || undefined,
+          accessCode,
         });
 
         if (emailResult.success) {

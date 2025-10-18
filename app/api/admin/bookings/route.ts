@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../lib/supabase';
+import { deleteAccessCodesForBooking } from '../../../../lib/seam';
 
 export async function GET(request: NextRequest) {
   try {
@@ -76,9 +77,34 @@ export async function PATCH(request: NextRequest) {
             { status: 400 }
           );
         }
+        
+        // Check if date or time is being modified
+        const isDateOrTimeModified = data.selected_date || data.start_time || data.end_time;
+        
+        // If date/time is being modified, we need to clean up old access codes
+        if (isDateOrTimeModified) {
+          // Get the current booking to find the old date and customer name
+          const { data: currentBooking } = await supabase
+            .from('bookings')
+            .select('customer_name, selected_date')
+            .eq('id', bookingId)
+            .single();
+          
+          if (currentBooking) {
+            // Clean up old access codes asynchronously (don't wait for it)
+            deleteAccessCodesForBooking(currentBooking.customer_name, currentBooking.selected_date)
+              .catch(error => console.error('Error cleaning up old access codes:', error));
+          }
+        }
+        
         updateData = {
           ...data,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          // Reset reminder flags if date/time is modified so new access codes are created
+          ...(isDateOrTimeModified && {
+            reminder_sent: false,
+            followup_sent: false
+          })
         };
         break;
       

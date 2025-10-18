@@ -62,6 +62,7 @@ export async function sendEventReminder(bookingData: {
   guestCount: number;
   specialRequirements?: string;
   organization?: string;
+  accessCode?: string;
 }) {
   try {
     await resend.emails.send({
@@ -311,6 +312,7 @@ function generateReminderEmailHTML(bookingData: {
   guestCount: number;
   specialRequirements?: string;
   organization?: string;
+  accessCode?: string;
 }): string {
   const vancouverTimezone = 'America/Vancouver';
   
@@ -386,11 +388,26 @@ function generateReminderEmailHTML(bookingData: {
           ` : ''}
         </div>
 
+        ${bookingData.accessCode ? `
+        <div class="access-code" style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #4caf50;">
+          <h3 style="color: #2e7d32; margin-top: 0;">🔑 Your Door Access Code</h3>
+          <div style="font-size: 32px; font-weight: bold; color: #1b5e20; letter-spacing: 3px; margin: 15px 0; font-family: 'Courier New', monospace; background-color: white; padding: 15px; border-radius: 6px; border: 2px dashed #4caf50;">
+            ${bookingData.accessCode}
+          </div>
+          <p style="margin: 10px 0; color: #2e7d32;"><strong>Valid:</strong> 15 minutes before your event until 15 minutes after</p>
+          <p style="margin: 5px 0; color: #2e7d32; font-size: 14px;">Use this code on the smart lock at the main entrance</p>
+        </div>
+        ` : `
+        <div class="access-fallback" style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <h3 style="color: #856404; margin-top: 0;">🔑 Door Access</h3>
+          <p style="margin: 5px 0; color: #856404;">Please contact us at <strong>info@caphillhall.ca</strong> for your door access code.</p>
+        </div>
+        `}
+
         <div class="important">
           <h3>⚠️ Important Reminders</h3>
           <ul>
             <li><strong>Arrival Time:</strong> Please arrive 15 minutes before your scheduled start time</li>
-            <li><strong>Access:</strong> The hall will be unlocked and ready for you</li>
             <li><strong>Parking:</strong> 25 free parking spaces available on site</li>
             <li><strong>WiFi:</strong> High-speed gigabit fiber WiFi is available (password will be provided on site)</li>
           </ul>
