@@ -1,10 +1,18 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import { Container, Typography, Box, Paper, Button } from '@mui/material';
 // Remove CalendarMonthIcon import if no longer needed
 // import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import Link from 'next/link';
+import { trackSelectContent } from '../../lib/gtm-events';
 
 export default function AvailabilityPage() {
+  // Track calendar view
+  useEffect(() => {
+    trackSelectContent('availability_calendar', 'calendar_view');
+  }, []);
+
   // Construct the Google Calendar embed URL using the correct calendar ID
   const calendarId = "capitolhillhallrent@gmail.com";
   const encodedCalendarId = encodeURIComponent(calendarId);

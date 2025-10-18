@@ -1,5 +1,8 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect } from 'react';
 import { Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Link as MuiLink, Button } from '@mui/material';
+import { trackSelectContent } from '../../lib/gtm-events';
 
 // Rental rates data
 const ratesData = [
@@ -8,6 +11,11 @@ const ratesData = [
 ];
 
 export default function RatesPage() {
+  // Track rates page view
+  useEffect(() => {
+    trackSelectContent('rates_page', 'pricing_view');
+  }, []);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h3" component="h1" gutterBottom>

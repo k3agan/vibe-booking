@@ -1,11 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Container, Typography } from '@mui/material';
 import PhotoGallery from '../components/PhotoGallery';
+import { trackSelectContent } from '../../lib/gtm-events';
 
 export default function GalleryPage() {
-      const photos: Array<{ src: string; alt: string; type: 'image' | 'video'; category: string }> = [
+  // Track gallery view
+  useEffect(() => {
+    trackSelectContent('photo_gallery', 'gallery_view');
+  }, []);
+
+  const photos: Array<{ src: string; alt: string; type: 'image' | 'video'; category: string }> = [
     // Exterior photos
     { src: '/images/exterior/exterior-parking-lot-full-view.jpg', alt: 'Parking lot full view', type: 'image', category: 'exterior' },
     { src: '/images/exterior/exterior-street-view-with-skyline.jpg', alt: 'Street view with skyline', type: 'image', category: 'exterior' },

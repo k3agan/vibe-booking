@@ -34,6 +34,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import RentalAgreement from '../components/RentalAgreement';
 import { useStripeConfig } from '../hooks/useStripeConfig';
+import { trackPurchase, trackBeginCheckout } from '../../lib/gtm-events';
+import { calculateDaysUntilEvent } from '../../lib/enhanced-conversions';
 
 // Payment Form Component
 function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
@@ -250,6 +252,11 @@ export default function BookNowPage() {
     
     setFormData(newFormData);
     
+    // Track begin_checkout when user starts filling the form
+    if (['name', 'email', 'phone'].includes(field) && value && !(formData as Record<string, any>)[field]) {
+      trackBeginCheckout('CAD', calculatedPrice);
+    }
+    
     // Recalculate price when relevant fields change
     if (['selectedDate', 'bookingType', 'duration', 'startTime'].includes(field)) {
       // Use the new form data for calculation
@@ -342,6 +349,17 @@ export default function BookNowPage() {
   const handlePaymentSuccess = (ref: string) => {
     setBookingRef(ref);
     setBookingSuccess(true);
+    
+    // Track purchase conversion
+    const daysUntilEvent = formData.selectedDate ? 
+      calculateDaysUntilEvent(formData.selectedDate.toISOString().split('T')[0]) : 0;
+    
+    trackPurchase(ref, calculatedPrice, 'CAD', {
+      event_type: formData.eventType,
+      booking_type: formData.bookingType,
+      days_until_event: daysUntilEvent,
+      guest_count: parseInt(formData.guestCount)
+    });
   };
 
   const handleAgreementAccept = () => {

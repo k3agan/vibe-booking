@@ -4,6 +4,7 @@ import { createBooking, logEmailSent, updateBookingPaymentMethod, updateDamageDe
 import Stripe from 'stripe';
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import { getStripeApiKey } from '@/lib/api-key-rotation';
+import { sendConversionToGoogleAds, calculateDaysUntilEvent } from '../../../lib/enhanced-conversions';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -271,6 +272,36 @@ Booking Details:
     } catch (dbError) {
       console.error('Error saving booking to database:', dbError);
       // Continue with email sending even if DB save fails
+    }
+
+    // Send Google Ads conversion tracking
+    try {
+      const daysUntilEvent = calculateDaysUntilEvent(bookingData.selectedDate);
+      
+      const conversionData = {
+        transaction_id: bookingRef,
+        value: calculatedPrice,
+        currency: 'CAD',
+        event_type: bookingData.eventType,
+        booking_type: bookingData.bookingType,
+        days_until_event: daysUntilEvent,
+        guest_count: parseInt(bookingData.guestCount),
+        enhanced_conversions: {
+          email: bookingData.email,
+          phone: bookingData.phone,
+          name: bookingData.name,
+        }
+      };
+
+      const conversionSent = await sendConversionToGoogleAds(conversionData);
+      if (conversionSent) {
+        console.log('Google Ads conversion sent successfully:', bookingRef);
+      } else {
+        console.warn('Failed to send Google Ads conversion');
+      }
+    } catch (conversionError) {
+      console.error('Error sending Google Ads conversion:', conversionError);
+      // Don't fail the booking if conversion tracking fails
     }
 
     // Send confirmation emails

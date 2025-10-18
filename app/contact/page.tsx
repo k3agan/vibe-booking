@@ -54,7 +54,13 @@ export default function ContactPage() {
                   primary="Phone" 
                   secondary={
                     <Box>
-                      {hallInfo.phone}
+                      <MuiLink 
+                        href={`tel:${hallInfo.phone}`}
+                        onClick={() => trackGenerateLead('CAD')}
+                        sx={{ textDecoration: 'none', color: 'inherit' }}
+                      >
+                        {hallInfo.phone}
+                      </MuiLink>
                       <Typography variant="caption" display="block" sx={{ color: 'warning.main', mt: 0.5 }}>
                         ⚠️ May have interruptions due to staffing availability
                       </Typography>
