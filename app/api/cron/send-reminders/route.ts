@@ -24,34 +24,35 @@ export async function GET(request: NextRequest) {
     let remindersFailed = 0;
     
     for (const booking of upcomingBookings) {
-      // Skip if reminder already sent
-      if (booking.reminder_sent) {
-        console.log(`[CRON] Skipping booking ${booking.booking_ref} - reminder already sent`);
-        continue;
-      }
-      
-      // Calculate hours until event with validation and consistent parsing
-      const vancouverTimezone = 'America/Vancouver';
-      if (!booking.selected_date || !booking.start_time) {
-        console.warn(
-          `[CRON] Booking ${booking.booking_ref} missing date or start_time; skipping reminder`,
-          { selected_date: booking.selected_date, start_time: booking.start_time }
-        );
-        continue;
-      }
+      try {
+        // Skip if reminder already sent
+        if (booking.reminder_sent) {
+          console.log(`[CRON] Skipping booking ${booking.booking_ref} - reminder already sent`);
+          continue;
+        }
+        
+        // Calculate hours until event with validation and consistent parsing
+        const vancouverTimezone = 'America/Vancouver';
+        if (!booking.selected_date || !booking.start_time) {
+          console.warn(
+            `[CRON] Booking ${booking.booking_ref} missing date or start_time; skipping reminder`,
+            { selected_date: booking.selected_date, start_time: booking.start_time }
+          );
+          continue;
+        }
 
-      // Calculate hours until event using proven timezone approach from damage deposit logic
-      const now = new Date();
-      const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
-      
-      // Parse event date/time in Vancouver timezone
-      const eventDate = new Date(`${booking.selected_date}T${booking.start_time}`);
-      const eventVancouver = new Date(eventDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
-      
-      const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
-      
-      // Send reminder if event is within 24-48 hours
-      if (Number.isFinite(hoursUntilEvent) && hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
+        // Calculate hours until event using proven timezone approach from damage deposit logic
+        const now = new Date();
+        const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+        
+        // Parse event date/time in Vancouver timezone
+        const eventDate = new Date(`${booking.selected_date}T${booking.start_time}`);
+        const eventVancouver = new Date(eventDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+        
+        const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
+        
+        // Send reminder if event is within 24-48 hours
+        if (Number.isFinite(hoursUntilEvent) && hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
         console.log(
           `[CRON] Sending reminder for booking ${booking.booking_ref} (${hoursUntilEvent.toFixed(1)}h until event)`
         );
@@ -118,15 +119,28 @@ export async function GET(request: NextRequest) {
           { selected_date: booking.selected_date, start_time: booking.start_time }
         );
       }
+      } catch (error: any) {
+        console.error(`[CRON] Error processing booking ${booking.booking_ref}:`, error);
+        remindersFailed++;
+        results.push({ 
+          bookingRef: booking.booking_ref, 
+          status: 'failed', 
+          error: error.message || 'Unknown error',
+          retryable: true 
+        });
+      }
     }
 
+    const retryableFailures = results.filter(r => r.retryable).length;
     const response = {
       success: true,
       message: `Cron job completed. Processed ${upcomingBookings.length} bookings.`,
       remindersSent,
       remindersFailed,
+      retryableFailures,
       results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      needsRetry: retryableFailures > 0
     };
 
     console.log(`[CRON] Reminder job completed:`, response);
