@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
     // Create event details
     const eventSummary = `${bookingData.eventType} - ${bookingData.name}`;
     const eventDescription = `
+Booking ID: ${bookingData.id}
 Event Type: ${bookingData.eventType}
 Contact: ${bookingData.name} (${bookingData.email}, ${bookingData.phone})
 Attendees: ${bookingData.guestCount} people

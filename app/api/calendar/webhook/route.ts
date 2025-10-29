@@ -112,6 +112,7 @@ async function processCalendarEvent(event: any, bookings: any[]) {
   try {
     // Extract booking information from event description
     const description = event.description || '';
+    const bookingId = extractFromDescription(description, 'Booking ID:');
     const eventType = extractFromDescription(description, 'Event Type:');
     const contactName = extractFromDescription(description, 'Contact:');
     const email = extractFromDescription(description, 'Contact:')?.match(/\(([^,]+)/)?.[1];
@@ -124,6 +125,20 @@ async function processCalendarEvent(event: any, bookings: any[]) {
     if (!eventType || !contactName || !email) {
       console.log(`⏭️ Skipping event ${event.id} - not a booking event`);
       return;
+    }
+
+    // Find matching booking - prefer booking ID if available, fallback to name/email
+    let matchingBooking;
+    if (bookingId) {
+      console.log(`🔍 Looking for booking by ID: ${bookingId}`);
+      matchingBooking = bookings.find(b => b.id === bookingId);
+    }
+    
+    if (!matchingBooking) {
+      console.log(`🔍 Looking for booking by name/email: ${contactName} / ${email}`);
+      matchingBooking = bookings.find(b => 
+        b.customer_name === contactName && b.customer_email === email
+      );
     }
 
     // Parse event times
@@ -144,13 +159,6 @@ async function processCalendarEvent(event: any, bookings: any[]) {
     const selectedDate = startDateVancouver.toISOString().split('T')[0];
     const startTimeStr = startDateVancouver.toTimeString().split(' ')[0].substring(0, 5);
     const endTimeStr = endDateVancouver.toTimeString().split(' ')[0].substring(0, 5);
-
-    // Find matching booking in database
-    const matchingBooking = bookings.find(booking => 
-      booking.customer_email === email &&
-      booking.customer_name === contactName &&
-      booking.event_type === eventType
-    );
 
     if (!matchingBooking) {
       console.log(`⏭️ No matching booking found for event ${event.id}`);
