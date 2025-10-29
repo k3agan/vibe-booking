@@ -43,9 +43,12 @@ export async function createAccessCode(bookingData: {
     // 15 minutes before start_time to 15 minutes after end_time
     const vancouverTimezone = 'America/Vancouver';
     
-    // Parse dates in Vancouver timezone, then add/subtract 15 minutes
-    const startDateTime = fromZonedTime(`${bookingData.selectedDate}T${bookingData.startTime}:00`, vancouverTimezone);
-    const endDateTime = fromZonedTime(`${bookingData.selectedDate}T${bookingData.endTime}:00`, vancouverTimezone);
+    // Parse dates using the same approach as the working cron jobs
+    const startDate = new Date(`${bookingData.selectedDate}T${bookingData.startTime}`);
+    const endDate = new Date(`${bookingData.selectedDate}T${bookingData.endTime}`);
+    
+    const startDateTime = new Date(startDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+    const endDateTime = new Date(endDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
     
     // Calculate access code validity window (15 minutes before/after in Vancouver time)
     const accessCodeStart = new Date(startDateTime.getTime() - 15 * 60 * 1000); // 15 minutes before
