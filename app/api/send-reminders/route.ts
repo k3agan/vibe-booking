@@ -20,11 +20,16 @@ export async function POST(request: NextRequest) {
         continue;
       }
       
-      // Check if booking is within 24-48 hours
+      // Check if booking is within 24-48 hours using proven timezone approach
       const vancouverTimezone = 'America/Vancouver';
-      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
-      const nowVancouver = new Date(new Date().toLocaleString("en-US", {timeZone: vancouverTimezone}));
-      const hoursUntilEvent = (eventDateTime.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
+      const now = new Date();
+      const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      // Parse event date/time in Vancouver timezone
+      const eventDate = new Date(`${booking.selected_date}T${booking.start_time}`);
+      const eventVancouver = new Date(eventDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
       
       // Send reminder if event is between 24-48 hours away
       if (hoursUntilEvent >= 24 && hoursUntilEvent <= 48) {
@@ -148,9 +153,14 @@ export async function GET(request: NextRequest) {
     
     const bookingsWithReminderStatus = upcomingBookings.map(booking => {
       const vancouverTimezone = 'America/Vancouver';
-      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
-      const nowVancouver = new Date(new Date().toLocaleString("en-US", {timeZone: vancouverTimezone}));
-      const hoursUntilEvent = (eventDateTime.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
+      const now = new Date();
+      const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      // Parse event date/time in Vancouver timezone
+      const eventDate = new Date(`${booking.selected_date}T${booking.start_time}`);
+      const eventVancouver = new Date(eventDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
       
       return {
         bookingRef: booking.booking_ref,

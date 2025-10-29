@@ -40,10 +40,16 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Parse event time in Vancouver timezone and get current Vancouver time for accurate comparison
-      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
-      const nowVancouver = new Date(new Date().toLocaleString("en-US", {timeZone: vancouverTimezone}));
-      const hoursUntilEvent = (eventDateTime.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
+      // Calculate hours until event using proven timezone approach from damage deposit logic
+      const vancouverTimezone = 'America/Vancouver';
+      const now = new Date();
+      const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      // Parse event date/time in Vancouver timezone
+      const eventDate = new Date(`${booking.selected_date}T${booking.start_time}`);
+      const eventVancouver = new Date(eventDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      
+      const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
       
       // Send reminder if event is within 24-48 hours
       if (Number.isFinite(hoursUntilEvent) && hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
