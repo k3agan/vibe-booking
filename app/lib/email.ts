@@ -318,10 +318,13 @@ function generateReminderEmailHTML(bookingData: {
   
   // Create dates in Vancouver timezone for proper display
   const eventDate = format(new Date(bookingData.selectedDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
-  
-  const startTime = format(new Date(`2000-01-01T${bookingData.startTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
-  
-  const endTime = format(new Date(`2000-01-01T${bookingData.endTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
+
+  // Normalize times to support both HH:MM and HH:MM:SS inputs
+  const startTimeStr = bookingData.startTime.length === 5 ? `${bookingData.startTime}:00` : bookingData.startTime;
+  const endTimeStr = bookingData.endTime.length === 5 ? `${bookingData.endTime}:00` : bookingData.endTime;
+
+  const startTime = format(new Date(`2000-01-01T${startTimeStr}`), 'h:mm a', { timeZone: vancouverTimezone });
+  const endTime = format(new Date(`2000-01-01T${endTimeStr}`), 'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
@@ -513,10 +516,13 @@ function generateFollowUpEmailHTML(bookingData: {
   
   // Create dates in Vancouver timezone for proper display
   const eventDate = format(new Date(bookingData.selectedDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
-  
-  const startTime = format(new Date(`2000-01-01T${bookingData.startTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
-  
-  const endTime = format(new Date(`2000-01-01T${bookingData.endTime}:00`), 'h:mm a', { timeZone: vancouverTimezone });
+
+  // Normalize times to support both HH:MM and HH:MM:SS inputs
+  const startTimeStr = bookingData.startTime.length === 5 ? `${bookingData.startTime}:00` : bookingData.startTime;
+  const endTimeStr = bookingData.endTime.length === 5 ? `${bookingData.endTime}:00` : bookingData.endTime;
+
+  const startTime = format(new Date(`2000-01-01T${startTimeStr}`), 'h:mm a', { timeZone: vancouverTimezone });
+  const endTime   = format(new Date(`2000-01-01T${endTimeStr}`),   'h:mm a', { timeZone: vancouverTimezone });
 
   return `
     <!DOCTYPE html>
