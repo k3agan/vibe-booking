@@ -68,7 +68,7 @@ export async function sendEventReminder(bookingData: {
     await resend.emails.send({
       from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [bookingData.customerEmail],
-      subject: `Event Reminder - ${bookingData.bookingRef} - Tomorrow!`,
+      subject: `Event Reminder - ${bookingData.bookingRef} - Coming Up!`,
       html: generateReminderEmailHTML(bookingData),
     });
 
@@ -348,12 +348,12 @@ function generateReminderEmailHTML(bookingData: {
     <body>
       <div class="header">
         <h1>📅 Event Reminder</h1>
-        <p>Your event is tomorrow!</p>
+        <p>Your event is coming up!</p>
       </div>
       
       <div class="content">
         <h2>Hello ${bookingData.customerName}!</h2>
-        <p>This is a friendly reminder that your <strong>${bookingData.eventType}</strong> is scheduled for tomorrow at Capitol Hill Hall.</p>
+        <p>This is a friendly reminder that your <strong>${bookingData.eventType}</strong> is coming up soon at Capitol Hill Hall.</p>
         
         <div class="event-details">
           <h3>Event Details</h3>

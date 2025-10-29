@@ -51,10 +51,27 @@ export async function GET(request: NextRequest) {
         
         const hoursUntilEvent = (eventVancouver.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
         
-        // Send reminder if event is within 24-48 hours
-        if (Number.isFinite(hoursUntilEvent) && hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
+        // Calculate hours since booking was created
+        const bookingCreatedAt = new Date(booking.created_at);
+        const hoursSinceBooking = (nowVancouver.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+        
+        // Send reminder if:
+        // 1. Event is within 24-48 hours (standard reminder window), OR
+        // 2. Event is within 48 hours AND booking was created within last 24 hours (last-minute booking needs immediate reminder)
+        const isStandardWindow = hoursUntilEvent >= 24 && hoursUntilEvent <= 48;
+        const isLastMinuteBooking = hoursUntilEvent > 0 && hoursUntilEvent <= 48 && hoursSinceBooking <= 24;
+        
+        const shouldSendReminder = Number.isFinite(hoursUntilEvent) && 
+          Number.isFinite(hoursSinceBooking) &&
+          hoursUntilEvent > 0 && 
+          (isStandardWindow || isLastMinuteBooking);
+        
+        if (shouldSendReminder) {
+        const reason = isLastMinuteBooking 
+          ? `last-minute booking (created ${hoursSinceBooking.toFixed(1)}h ago, event in ${hoursUntilEvent.toFixed(1)}h)`
+          : `standard window (event in ${hoursUntilEvent.toFixed(1)}h)`;
         console.log(
-          `[CRON] Sending reminder for booking ${booking.booking_ref} (${hoursUntilEvent.toFixed(1)}h until event)`
+          `[CRON] Sending reminder for booking ${booking.booking_ref} - ${reason}`
         );
         
         // Attempt to create access code
