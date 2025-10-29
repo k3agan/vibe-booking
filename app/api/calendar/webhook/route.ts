@@ -135,6 +135,7 @@ async function processCalendarEvent(event: any, bookings: any[]) {
       return;
     }
 
+
     // Convert to Vancouver timezone
     const vancouverTimezone = 'America/Vancouver';
     const startDateVancouver = toZonedTime(new Date(startTime), vancouverTimezone);

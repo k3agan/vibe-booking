@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       
       // Check if booking is within 24-48 hours
       const vancouverTimezone = 'America/Vancouver';
-      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
+      const eventDateTime = fromZonedTime(new Date(`${booking.selected_date}T${booking.start_time}:00`), vancouverTimezone);
       const now = new Date();
       const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       

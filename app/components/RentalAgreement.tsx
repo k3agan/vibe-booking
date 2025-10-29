@@ -230,7 +230,7 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           color="primary"
           size="large"
         >
-          I Agree - Proceed to Payment
+          I Agree
         </Button>
       </DialogActions>
     </Dialog>

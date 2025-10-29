@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       
       // Calculate hours until event
       const vancouverTimezone = 'America/Vancouver';
-      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
+      const eventDateTime = fromZonedTime(new Date(`${booking.selected_date}T${booking.start_time}:00`), vancouverTimezone);
       const now = new Date();
       const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
       
