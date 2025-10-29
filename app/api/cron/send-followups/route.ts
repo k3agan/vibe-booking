@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
       // Ensure the event actually ended and is within the 1-2 day window
       const vancouverTimezone = 'America/Vancouver';
       const eventEndDateTime = fromZonedTime(`${booking.selected_date} ${booking.end_time}:00`, vancouverTimezone);
-      const now = new Date();
-      const diffHours = (now.getTime() - eventEndDateTime.getTime()) / (1000 * 60 * 60);
+      const nowVancouver = new Date(new Date().toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      const diffHours = (nowVancouver.getTime() - eventEndDateTime.getTime()) / (1000 * 60 * 60);
 
       // Send follow-up if event ended between 24 and 48 hours ago and follow-up not sent
       if (diffHours > 24 && diffHours <= 48 && !booking.followup_sent) {

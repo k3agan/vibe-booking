@@ -30,15 +30,26 @@ export async function GET(request: NextRequest) {
         continue;
       }
       
-      // Calculate hours until event
+      // Calculate hours until event with validation and consistent parsing
       const vancouverTimezone = 'America/Vancouver';
-      const eventDateTime = fromZonedTime(new Date(`${booking.selected_date}T${booking.start_time}:00`), vancouverTimezone);
-      const now = new Date();
-      const hoursUntilEvent = (eventDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (!booking.selected_date || !booking.start_time) {
+        console.warn(
+          `[CRON] Booking ${booking.booking_ref} missing date or start_time; skipping reminder`,
+          { selected_date: booking.selected_date, start_time: booking.start_time }
+        );
+        continue;
+      }
+
+      // Parse event time in Vancouver timezone and get current Vancouver time for accurate comparison
+      const eventDateTime = fromZonedTime(`${booking.selected_date} ${booking.start_time}:00`, vancouverTimezone);
+      const nowVancouver = new Date(new Date().toLocaleString("en-US", {timeZone: vancouverTimezone}));
+      const hoursUntilEvent = (eventDateTime.getTime() - nowVancouver.getTime()) / (1000 * 60 * 60);
       
       // Send reminder if event is within 24-48 hours
-      if (hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
-        console.log(`[CRON] Sending reminder for booking ${booking.booking_ref} (${hoursUntilEvent.toFixed(1)}h until event)`);
+      if (Number.isFinite(hoursUntilEvent) && hoursUntilEvent > 0 && hoursUntilEvent <= 48) {
+        console.log(
+          `[CRON] Sending reminder for booking ${booking.booking_ref} (${hoursUntilEvent.toFixed(1)}h until event)`
+        );
         
         // Attempt to create access code
         let accessCode: string | undefined;
@@ -94,7 +105,13 @@ export async function GET(request: NextRequest) {
           console.error(`[CRON] Failed to send reminder for ${booking.booking_ref}:`, emailResult.error);
         }
       } else {
-        console.log(`[CRON] Booking ${booking.booking_ref} is not within reminder window (${hoursUntilEvent.toFixed(1)}h until event)`);
+        const hoursStr = Number.isFinite(hoursUntilEvent)
+          ? `${hoursUntilEvent.toFixed(1)}h`
+          : 'invalid time (NaN)';
+        console.log(
+          `[CRON] Booking ${booking.booking_ref} is not within reminder window (${hoursStr} until event)`,
+          { selected_date: booking.selected_date, start_time: booking.start_time }
+        );
       }
     }
 
