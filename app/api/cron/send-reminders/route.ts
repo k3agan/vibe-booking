@@ -41,7 +41,6 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate hours until event using proven timezone approach from damage deposit logic
-      const vancouverTimezone = 'America/Vancouver';
       const now = new Date();
       const nowVancouver = new Date(now.toLocaleString("en-US", {timeZone: vancouverTimezone}));
       
