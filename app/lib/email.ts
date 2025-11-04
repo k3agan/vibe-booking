@@ -786,3 +786,362 @@ function generateDamageDepositEmailHTML(data: {
     </html>
   `;
 }
+
+export async function sendFeedbackEmail(feedbackData: {
+  name: string | null;
+  email: string | null;
+  bookingRef: string | null;
+  ratings: {
+    cleanliness: number;
+    valueForMoney: number;
+    easeOfBooking: number;
+    amenitiesAvailable: number;
+    buildingAccessCode: number;
+    responsivenessOfStaff: number;
+    overallSatisfaction: number;
+  };
+  improvements: {
+    cleanliness: string | null;
+    valueForMoney: string | null;
+    easeOfBooking: string | null;
+    amenitiesAvailable: string | null;
+    buildingAccessCode: string | null;
+    responsivenessOfStaff: string | null;
+    overallSatisfaction: string | null;
+  };
+  generalFeedback: string | null;
+}) {
+  try {
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    // Build subject with name and/or booking reference
+    let subjectParts = ['Feedback Received'];
+    if (feedbackData.name) {
+      subjectParts.push(`from ${feedbackData.name}`);
+    }
+    if (feedbackData.bookingRef) {
+      subjectParts.push(`(${feedbackData.bookingRef})`);
+    }
+    const subject = subjectParts.join(' ');
+    
+    const result = await resend.emails.send({
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
+      to: ['info@caphillhall.ca'],
+      subject,
+      html: generateFeedbackEmailHTML(feedbackData),
+    });
+
+    if (result.error) {
+      console.error('Resend API error:', result.error);
+      return { success: false, error: result.error.message || 'Failed to send email' };
+    }
+
+    console.log('Feedback email sent successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending feedback email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+function generateFeedbackEmailHTML(feedbackData: {
+  name: string | null;
+  email: string | null;
+  bookingRef: string | null;
+  ratings: {
+    cleanliness: number;
+    valueForMoney: number;
+    easeOfBooking: number;
+    amenitiesAvailable: number;
+    buildingAccessCode: number;
+    responsivenessOfStaff: number;
+    overallSatisfaction: number;
+  };
+  improvements: {
+    cleanliness: string | null;
+    valueForMoney: string | null;
+    easeOfBooking: string | null;
+    amenitiesAvailable: string | null;
+    buildingAccessCode: string | null;
+    responsivenessOfStaff: string | null;
+    overallSatisfaction: string | null;
+  };
+  generalFeedback: string | null;
+}): string {
+  const getRatingStars = (rating: number) => {
+    return '⭐'.repeat(rating) + '○'.repeat(5 - rating);
+  };
+
+  // Escape HTML to prevent XSS and ensure proper rendering
+  const escapeHtml = (text: string | null): string => {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Feedback Received${feedbackData.bookingRef ? ` - ${feedbackData.bookingRef}` : ''}</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .section { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-label { font-weight: bold; }
+        .rating-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; padding: 10px; background-color: #f5f5f5; border-radius: 4px; }
+        .rating-label { font-weight: bold; flex: 1; }
+        .rating-value { font-size: 18px; }
+        .improvement-box { background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #ffc107; }
+        .improvement-label { font-weight: bold; color: #856404; margin-bottom: 5px; }
+        .improvement-text { color: #856404; }
+        .general-feedback-box { background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📝 Feedback Received</h1>
+        <p>New feedback from a customer</p>
+      </div>
+      
+      <div class="content">
+        <div class="section">
+          <h3>Customer Information</h3>
+          ${feedbackData.name ? `
+          <div class="detail-row">
+            <span class="detail-label">Name:</span>
+            <span>${escapeHtml(feedbackData.name)}</span>
+          </div>
+          ` : ''}
+          ${feedbackData.email ? `
+          <div class="detail-row">
+            <span class="detail-label">Email:</span>
+            <span>${escapeHtml(feedbackData.email)}</span>
+          </div>
+          ` : ''}
+          ${feedbackData.bookingRef ? `
+          <div class="detail-row">
+            <span class="detail-label">Booking Reference:</span>
+            <span>${escapeHtml(feedbackData.bookingRef)}</span>
+          </div>
+          ` : ''}
+          ${!feedbackData.name && !feedbackData.email && !feedbackData.bookingRef ? `
+          <div class="detail-row">
+            <span class="detail-label">Information:</span>
+            <span>No contact information provided</span>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="section">
+          <h3>Ratings (1 = Poor, 5 = Excellent)</h3>
+          
+          <div class="rating-row">
+            <span class="rating-label">Cleanliness:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.cleanliness)} (${feedbackData.ratings.cleanliness}/5)</span>
+          </div>
+          ${feedbackData.improvements.cleanliness ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.cleanliness)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Value for Money:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.valueForMoney)} (${feedbackData.ratings.valueForMoney}/5)</span>
+          </div>
+          ${feedbackData.improvements.valueForMoney ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.valueForMoney)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Ease of Booking:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.easeOfBooking)} (${feedbackData.ratings.easeOfBooking}/5)</span>
+          </div>
+          ${feedbackData.improvements.easeOfBooking ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.easeOfBooking)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Amenities Available:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.amenitiesAvailable)} (${feedbackData.ratings.amenitiesAvailable}/5)</span>
+          </div>
+          ${feedbackData.improvements.amenitiesAvailable ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.amenitiesAvailable)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Building Access Code:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.buildingAccessCode)} (${feedbackData.ratings.buildingAccessCode}/5)</span>
+          </div>
+          ${feedbackData.improvements.buildingAccessCode ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.buildingAccessCode)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Responsiveness of Staff:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.responsivenessOfStaff)} (${feedbackData.ratings.responsivenessOfStaff}/5)</span>
+          </div>
+          ${feedbackData.improvements.responsivenessOfStaff ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.responsivenessOfStaff)}</div>
+          </div>
+          ` : ''}
+
+          <div class="rating-row">
+            <span class="rating-label">Overall Satisfaction:</span>
+            <span class="rating-value">${getRatingStars(feedbackData.ratings.overallSatisfaction)} (${feedbackData.ratings.overallSatisfaction}/5)</span>
+          </div>
+          ${feedbackData.improvements.overallSatisfaction ? `
+          <div class="improvement-box">
+            <div class="improvement-label">How to improve:</div>
+            <div class="improvement-text">${escapeHtml(feedbackData.improvements.overallSatisfaction)}</div>
+          </div>
+          ` : ''}
+        </div>
+
+        ${feedbackData.generalFeedback ? `
+        <div class="section">
+          <h3>Additional Comments</h3>
+          <div class="general-feedback-box">
+            <p style="white-space: pre-wrap; margin: 0;">${escapeHtml(feedbackData.generalFeedback)}</p>
+          </div>
+        </div>
+        ` : ''}
+
+        <div class="footer">
+          <p><strong>Capitol Hill Hall</strong><br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
+          🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
+          <p><em>Feedback submitted via feedback form</em></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendFeedbackThankYouEmail(data: {
+  customerEmail: string;
+  customerName: string | null;
+  averageRating: number;
+}) {
+  try {
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not configured');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const customerName = data.customerName || 'Valued Customer';
+    
+    await resend.emails.send({
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
+      to: [data.customerEmail],
+      subject: 'Thank You for Your Feedback!',
+      html: generateFeedbackThankYouEmailHTML(customerName, data.averageRating),
+    });
+
+    console.log('Thank you email sent successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending thank you email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+function generateFeedbackThankYouEmailHTML(customerName: string, averageRating: number): string {
+  // Escape HTML to prevent XSS and ensure proper rendering
+  const escapeHtml = (text: string | null): string => {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Thank You for Your Feedback</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>🙏 Thank You!</h1>
+        <p>We appreciate your feedback</p>
+      </div>
+      
+      <div class="content">
+        <h2>Hello ${escapeHtml(customerName)}!</h2>
+        <p>Thank you so much for taking the time to share your feedback about your experience at Capitol Hill Hall. Your thoughts and suggestions are incredibly valuable to us and help us improve our services.</p>
+        
+        <p>We take all feedback seriously and will use your input to continue providing the best possible experience for our customers.</p>
+        
+        ${averageRating > 4.0 ? `
+        <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #4caf50;">
+          <h3 style="margin-top: 0; color: #2e7d32;">⭐ Love Your Experience?</h3>
+          <p style="margin: 10px 0;">We're thrilled you enjoyed your time at Capitol Hill Hall! If you have a moment, we'd be honored if you could share your experience with others by leaving us a review on Google.</p>
+          <div style="margin: 20px 0;">
+            <a href="https://www.google.com/maps/place/Capitol+Hill+Community+Hall/@49.2810398,-122.9866808,17z/data=!3m1!4b1!4m6!3m5!1s0x5486774d455d286f:0xb14757d048b9016b!8m2!3d49.2810398!4d-122.9841069!16s%2Fg%2F11c0m7nq0k?entry=ttu&hl=en" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               style="display: inline-block; background-color: #4285f4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
+              Leave a Google Review
+            </a>
+          </div>
+          <p style="font-size: 14px; color: #666; margin: 10px 0 0 0;">Your review helps us continue serving our community and helps others discover our wonderful venue!</p>
+        </div>
+        ` : ''}
+        
+        <p>If you have any additional questions or concerns, please don't hesitate to reach out to us at <strong>info@caphillhall.ca</strong> or call us at <strong>(604) 500-9505</strong>.</p>
+        
+        <p>We hope to see you again soon!</p>
+        
+        <p>Best regards,<br>
+        <strong>The Capitol Hill Hall Team</strong></p>
+
+        <div class="footer">
+          <p><strong>Capitol Hill Hall</strong><br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
+          🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
+          <p><em>Your rental helps support local charities in our community!</em></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
