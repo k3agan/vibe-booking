@@ -46,7 +46,7 @@ export default function ContactPage() {
               </ListItem>
               <ListItem>
                 <ListItemIcon><EmailIcon /></ListItemIcon>
-                <ListItemText primary="Email" secondary={<MuiLink href={`mailto:${hallInfo.email}`}>{hallInfo.email}</MuiLink>} />
+                <ListItemText primary="Email" secondary={<MuiLink href="mailto:info@caphillhall.ca">info@caphillhall.ca</MuiLink>} />
               </ListItem>
               <ListItem>
                 <ListItemIcon><PhoneIcon /></ListItemIcon>

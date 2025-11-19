@@ -308,7 +308,7 @@ export default function MembershipPage() {
           Questions About Membership?
         </Typography>
         <Typography variant="body2" paragraph>
-          Contact us at <strong>info@caphillhall.ca</strong> or call <strong>(604) 500-9505</strong>
+          Contact us at <strong>membership@caphillhall.ca</strong> or call <strong>(604) 500-9505</strong>
         </Typography>
         <Typography variant="body2" color="text.secondary">
           We'd love to answer any questions you have about joining our community association!
