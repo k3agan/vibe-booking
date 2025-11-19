@@ -53,12 +53,13 @@ export default function ContactPage() {
                 <ListItemText 
                   primary="Phone" 
                   secondary={
-                    <Box>
+                    <>
                       {hallInfo.phone}
-                      <Typography variant="caption" display="block" sx={{ color: 'warning.main', mt: 0.5 }}>
+                      <br />
+                      <span style={{ color: '#ed6c02', fontSize: '0.75rem', marginTop: '4px' }}>
                         ⚠️ May have interruptions due to staffing availability
-                      </Typography>
-                    </Box>
+                      </span>
+                    </>
                   } 
                 />
               </ListItem>

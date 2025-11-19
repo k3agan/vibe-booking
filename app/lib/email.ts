@@ -131,6 +131,7 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background-color: #2c5aa0; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
         .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
         .booking-details { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
         .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
@@ -142,6 +143,7 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>🎉 Booking Confirmed!</h1>
         <p>Thank you for choosing Capitol Hill Hall</p>
       </div>
@@ -252,6 +254,7 @@ function generateManagementEmailHTML(confirmation: BookingConfirmation): string 
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>📅 New Booking Received</h1>
         <p>Booking Reference: ${bookingRef}</p>
       </div>
@@ -347,6 +350,7 @@ function generateReminderEmailHTML(bookingData: {
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>📅 Event Reminder</h1>
         <p>Your event is coming up!</p>
       </div>
@@ -548,6 +552,7 @@ function generateFollowUpEmailHTML(bookingData: {
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>🎉 Thank You!</h1>
         <p>We hope your event was a success!</p>
       </div>
@@ -704,6 +709,7 @@ function generateDamageDepositEmailHTML(data: {
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>🔒 Damage Deposit Hold Placed</h1>
         <p>Your event is coming up soon!</p>
       </div>
@@ -911,6 +917,7 @@ function generateFeedbackEmailHTML(feedbackData: {
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>📝 Feedback Received</h1>
         <p>New feedback from a customer</p>
       </div>
@@ -1101,6 +1108,7 @@ function generateFeedbackThankYouEmailHTML(customerName: string, averageRating: 
     </head>
     <body>
       <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
         <h1>🙏 Thank You!</h1>
         <p>We appreciate your feedback</p>
       </div>

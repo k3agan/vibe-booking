@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Container, Typography, Grid, Link } from '@mui/material';
+import Image from 'next/image';
 import { hallInfo } from '../data/hallInfo';
 
 function Copyright() {
@@ -20,6 +21,15 @@ export default function Footer() {
     <Box component="footer" sx={{ bgcolor: 'background.paper', py: 4, mt: 'auto' }}>
       <Container maxWidth="lg">
         <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
+            <Image
+              src="/logo.png"
+              alt={`${hallInfo.name} Logo`}
+              width={120}
+              height={120}
+              style={{ objectFit: 'contain' }}
+            />
+          </Box>
           <Typography variant="h6" gutterBottom>
             {hallInfo.name}
           </Typography>

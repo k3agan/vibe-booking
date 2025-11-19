@@ -55,12 +55,8 @@ export default function RatesPage() {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" gutterBottom>Important Information:</Typography>
         <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
-          <li><strong>Weekday Rates:</strong> Monday-Thursday, $50/hour or $750 for full day - Evening and afternoon availability only</li>
+          <li><strong>Weekday Rates:</strong> Monday-Thursday, $50/hour or $750 for full day - limited availability</li>
           <li><strong>Weekend Rates:</strong> Friday-Sunday, $100/hour or $900 for full day</li>
-          <li><strong>Non-Profit Discount:</strong> 20% discount available for registered non-profits (proof required)</li>
-          <li><strong>Weekday Availability:</strong> Limited to evenings and afternoons due to regular tenant bookings</li>
-          <li><strong>Payment:</strong> Full payment required at time of booking</li>
-          <li><strong>Multi-booking discounts:</strong> Available for multiple bookings - please inquire</li>
         </Typography>
       </Box>
 

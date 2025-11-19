@@ -18,6 +18,16 @@ export default function Home() {
 
         <Container maxWidth="md" sx={{ mt: -8, mb: 4, position: 'relative', zIndex: 1 }}>
           <Box sx={{ bgcolor: 'background.paper', p: 4, borderRadius: 2, boxShadow: 3, textAlign: 'center' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+              <Image
+                src="/logo.png"
+                alt={`${hallInfo.name} Logo`}
+                width={150}
+                height={150}
+                style={{ objectFit: 'contain' }}
+                priority
+              />
+            </Box>
             <Typography variant="h2" component="h1" gutterBottom>
               Welcome to {hallInfo.name}
             </Typography>

@@ -1,17 +1,28 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import Link from 'next/link'; // Use Next.js Link for navigation
+import Image from 'next/image';
 import { hallInfo } from '../data/hallInfo'; // Import hall data
 
 export default function Header() {
   return (
     <AppBar position="static"> {/* Or position="sticky" for a sticky header */}
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-            {hallInfo.name} {/* Use hall name from data */}
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Image
+              src="/logo.png"
+              alt={`${hallInfo.name} Logo`}
+              width={60}
+              height={60}
+              style={{ objectFit: 'contain' }}
+              priority
+            />
+            <Typography variant="h6" component="div" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              {hallInfo.name}
+            </Typography>
           </Link>
-        </Typography>
+        </Box>
 
         {/* Navigation Links */}
         <Box>

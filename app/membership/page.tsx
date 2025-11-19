@@ -37,11 +37,14 @@ export default function MembershipPage() {
         }),
       });
 
+      const data = await response.json();
+      
       if (response.ok) {
         setSubmitStatus('success');
         setEmail('');
       } else {
-        throw new Error('Failed to subscribe');
+        console.error('Subscription failed:', data);
+        setSubmitStatus('error');
       }
     } catch (error) {
       console.error('Error subscribing to mailing list:', error);
