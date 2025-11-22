@@ -43,20 +43,37 @@ export async function createAccessCode(bookingData: {
     // 15 minutes before start_time to 15 minutes after end_time
     const vancouverTimezone = 'America/Vancouver';
     
-    // Parse dates using the same approach as the working cron jobs
-    const startDate = new Date(`${bookingData.selectedDate}T${bookingData.startTime}`);
-    const endDate = new Date(`${bookingData.selectedDate}T${bookingData.endTime}`);
+    // Parse dates correctly using fromZonedTime (same approach as payment-success route)
+    // The date/time strings are in Vancouver timezone, so we use fromZonedTime to convert to UTC
+    const startTimeStr = `${bookingData.selectedDate} ${bookingData.startTime}:00`;
+    const startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
     
-    const startDateTime = new Date(startDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
-    const endDateTime = new Date(endDate.toLocaleString("en-US", {timeZone: vancouverTimezone}));
+    // Handle end time - if it's "00:00", it means midnight (end of day), so add 1 day
+    let endDateTime: Date;
+    if (bookingData.endTime === '00:00' || bookingData.endTime === '00:00:00') {
+      // End time is midnight, so it's the next day
+      // Parse the date and add 1 day properly
+      const selectedDateParts = bookingData.selectedDate.split('-');
+      const year = parseInt(selectedDateParts[0]);
+      const month = parseInt(selectedDateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(selectedDateParts[2]);
+      const nextDay = new Date(Date.UTC(year, month, day + 1));
+      const nextDayStr = nextDay.toISOString().split('T')[0];
+      const endTimeStr = `${nextDayStr} 00:00:00`;
+      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
+    } else {
+      const endTimeStr = `${bookingData.selectedDate} ${bookingData.endTime}:00`;
+      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
+    }
     
     // Calculate access code validity window (15 minutes before/after in Vancouver time)
     const accessCodeStart = new Date(startDateTime.getTime() - 15 * 60 * 1000); // 15 minutes before
     const accessCodeEnd = new Date(endDateTime.getTime() + 15 * 60 * 1000); // 15 minutes after
 
     console.log(`Creating access code for ${bookingData.customerName}:`);
-    console.log(`- Booking: ${bookingData.selectedDate} ${bookingData.startTime} - ${bookingData.endTime}`);
-    console.log(`- Access window: ${accessCodeStart.toISOString()} to ${accessCodeEnd.toISOString()}`);
+    console.log(`- Booking: ${bookingData.selectedDate} ${bookingData.startTime} - ${bookingData.endTime} (Vancouver time)`);
+    console.log(`- Access window (UTC): ${accessCodeStart.toISOString()} to ${accessCodeEnd.toISOString()}`);
+    console.log(`- Access window (Vancouver): ${accessCodeStart.toLocaleString("en-US", {timeZone: vancouverTimezone})} to ${accessCodeEnd.toLocaleString("en-US", {timeZone: vancouverTimezone})}`);
 
     // Create access code via Seam API
     const accessCode = await seam.accessCodes.create({
