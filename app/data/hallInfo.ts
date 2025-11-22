@@ -53,7 +53,7 @@ export const hallInfo: HallInfo = {
     { primary: "Bathrooms", secondary: "5 bathrooms available on premises" },
     
     // Amenities and facilities
-    { primary: "Furniture", secondary: "Chairs and tables provided. Renter responsible for setup, takedown, cleaning, and stacking." },
+    { primary: "Furniture", secondary: "28 long tables (72\" x 30\"), 19 round tables (60\"), and 150 folding chairs included with rental fee. Renter responsible for setup, takedown, cleaning, and stacking." },
     { primary: "Kitchen Facilities", secondary: "Oven, Fridge, Sink, Dishwasher, and other standard amenities. Re-heating only - no food preparation allowed" },
     { primary: "Free WiFi", secondary: "High-speed gigabit fiber WiFi available on site" },
     { primary: "Accessibility", secondary: "Ramps and accessible facilities available" },
