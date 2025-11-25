@@ -8,6 +8,86 @@ const seam = new Seam({
 
 const LOCK_ID = process.env.SEAM_LOCK_ID || '';
 
+/**
+ * Parses a date/time string as if it's in the specified timezone and converts to UTC
+ * @param dateTimeStr - Date/time string in format "YYYY-MM-DD HH:mm:ss"
+ * @param timeZone - IANA timezone string (e.g., "America/Vancouver")
+ * @returns Date object in UTC
+ */
+function parseDateTimeInTimezone(dateTimeStr: string, timeZone: string): Date {
+  // Parse the date/time components from "YYYY-MM-DD HH:mm:ss"
+  const [datePart, timePart] = dateTimeStr.split(' ');
+  
+  if (!datePart || !timePart) {
+    throw new Error(`Invalid date/time format: ${dateTimeStr}. Expected "YYYY-MM-DD HH:mm:ss"`);
+  }
+  
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour, minute, second] = timePart.split(':').map(Number);
+  
+  // Validate parsed values
+  if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute) || isNaN(second || 0)) {
+    throw new Error(`Invalid date/time values in: ${dateTimeStr}`);
+  }
+  
+  // Create a Date object with the components (this creates it in server's local timezone)
+  const localDate = new Date(year, month - 1, day, hour, minute, second || 0);
+  
+  // Validate the date was created successfully
+  if (isNaN(localDate.getTime())) {
+    throw new Error(`Invalid date created from: ${dateTimeStr}`);
+  }
+  
+  // Get what time this local date represents in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(localDate);
+  const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  
+  const tzYear = getPart('year');
+  const tzMonth = getPart('month');
+  const tzDay = getPart('day');
+  const tzHour = getPart('hour');
+  const tzMinute = getPart('minute');
+  const tzSecond = getPart('second');
+  
+  // Calculate the difference between desired time and what the local date represents in target timezone
+  // We want: year-month-day hour:minute:second in target timezone
+  // We have: tzYear-tzMonth-tzDay tzHour:tzMinute:tzSecond in target timezone (from localDate)
+  // So we need to adjust localDate by the difference
+  
+  const desiredUTC = Date.UTC(year, month - 1, day, hour, minute, second || 0);
+  const actualUTC = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute, tzSecond);
+  const offsetMs = desiredUTC - actualUTC;
+  
+  // Adjust the local date by the calculated offset
+  const adjustedDate = new Date(localDate.getTime() + offsetMs);
+  
+  // Validate adjusted date
+  if (isNaN(adjustedDate.getTime())) {
+    throw new Error(`Invalid adjusted date created from: ${dateTimeStr}`);
+  }
+  
+  // Now fromZonedTime will interpret this Date object as being in the target timezone and convert to UTC
+  const utcDate = fromZonedTime(adjustedDate, timeZone);
+  
+  // Final validation
+  if (isNaN(utcDate.getTime())) {
+    throw new Error(`Invalid UTC date created from: ${dateTimeStr} in timezone ${timeZone}`);
+  }
+  
+  return utcDate;
+}
+
 export interface AccessCodeResult {
   success: boolean;
   accessCode?: string;
@@ -43,10 +123,10 @@ export async function createAccessCode(bookingData: {
     // 15 minutes before start_time to 15 minutes after end_time
     const vancouverTimezone = 'America/Vancouver';
     
-    // Parse dates correctly using fromZonedTime (same approach as payment-success route)
-    // The date/time strings are in Vancouver timezone, so we use fromZonedTime to convert to UTC
+    // Parse dates correctly: parse the string as if it's in Vancouver timezone, then convert to UTC
+    // The date/time strings are in Vancouver timezone format: "YYYY-MM-DD HH:mm:ss"
     const startTimeStr = `${bookingData.selectedDate} ${bookingData.startTime}:00`;
-    const startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
+    const startDateTime = parseDateTimeInTimezone(startTimeStr, vancouverTimezone);
     
     // Handle end time - if it's "00:00", it means midnight (end of day), so add 1 day
     let endDateTime: Date;
@@ -60,10 +140,10 @@ export async function createAccessCode(bookingData: {
       const nextDay = new Date(Date.UTC(year, month, day + 1));
       const nextDayStr = nextDay.toISOString().split('T')[0];
       const endTimeStr = `${nextDayStr} 00:00:00`;
-      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
+      endDateTime = parseDateTimeInTimezone(endTimeStr, vancouverTimezone);
     } else {
       const endTimeStr = `${bookingData.selectedDate} ${bookingData.endTime}:00`;
-      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
+      endDateTime = parseDateTimeInTimezone(endTimeStr, vancouverTimezone);
     }
     
     // Calculate access code validity window (15 minutes before/after in Vancouver time)
