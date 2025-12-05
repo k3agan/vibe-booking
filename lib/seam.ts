@@ -8,6 +8,22 @@ const seam = new Seam({
 
 const LOCK_ID = process.env.SEAM_LOCK_ID || '';
 
+/**
+ * Normalizes a time string to HH:mm format
+ * Handles both HH:mm and HH:mm:ss formats from database
+ * @param time - Time string in HH:mm or HH:mm:ss format
+ * @returns Time string in HH:mm format
+ */
+function normalizeTimeToHHMM(time: string): string {
+  const parts = time.split(':');
+  if (parts.length >= 2) {
+    // Ensure we always return HH:mm (strip seconds if present)
+    return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+  }
+  // Fallback: return original if format is unexpected
+  return time;
+}
+
 export interface AccessCodeResult {
   success: boolean;
   accessCode?: string;
@@ -45,12 +61,16 @@ export async function createAccessCode(bookingData: {
     
     // Parse dates correctly using fromZonedTime (same approach as payment-success route)
     // The date/time strings are in Vancouver timezone, so we use fromZonedTime to convert to UTC
-    const startTimeStr = `${bookingData.selectedDate} ${bookingData.startTime}:00`;
+    // Note: Database may return times in HH:mm:ss format, so we normalize to HH:mm first
+    const normalizedStartTime = normalizeTimeToHHMM(bookingData.startTime);
+    const startTimeStr = `${bookingData.selectedDate} ${normalizedStartTime}:00`;
     const startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
     
     // Handle end time - if it's "00:00", it means midnight (end of day), so add 1 day
+    // Note: Database may return times in HH:mm:ss format, so we normalize to HH:mm first
+    const normalizedEndTime = normalizeTimeToHHMM(bookingData.endTime);
     let endDateTime: Date;
-    if (bookingData.endTime === '00:00' || bookingData.endTime === '00:00:00') {
+    if (normalizedEndTime === '00:00') {
       // End time is midnight, so it's the next day
       // Parse the date and add 1 day properly
       const selectedDateParts = bookingData.selectedDate.split('-');
@@ -62,7 +82,7 @@ export async function createAccessCode(bookingData: {
       const endTimeStr = `${nextDayStr} 00:00:00`;
       endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
     } else {
-      const endTimeStr = `${bookingData.selectedDate} ${bookingData.endTime}:00`;
+      const endTimeStr = `${bookingData.selectedDate} ${normalizedEndTime}:00`;
       endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
     }
     
@@ -71,7 +91,9 @@ export async function createAccessCode(bookingData: {
     const accessCodeEnd = new Date(endDateTime.getTime() + 15 * 60 * 1000); // 15 minutes after
 
     console.log(`Creating access code for ${bookingData.customerName}:`);
-    console.log(`- Booking: ${bookingData.selectedDate} ${bookingData.startTime} - ${bookingData.endTime} (Vancouver time)`);
+    console.log(`- Raw input: date=${bookingData.selectedDate}, start=${bookingData.startTime}, end=${bookingData.endTime}`);
+    console.log(`- Normalized: start=${normalizedStartTime}, end=${normalizedEndTime}`);
+    console.log(`- Booking: ${bookingData.selectedDate} ${normalizedStartTime} - ${normalizedEndTime} (Vancouver time)`);
     console.log(`- Access window (UTC): ${accessCodeStart.toISOString()} to ${accessCodeEnd.toISOString()}`);
     console.log(`- Access window (Vancouver): ${accessCodeStart.toLocaleString("en-US", {timeZone: vancouverTimezone})} to ${accessCodeEnd.toLocaleString("en-US", {timeZone: vancouverTimezone})}`);
 
