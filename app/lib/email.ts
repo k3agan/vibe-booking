@@ -402,7 +402,7 @@ function generateReminderEmailHTML(bookingData: {
             ${bookingData.accessCode}
           </div>
           <p style="margin: 10px 0; color: #2e7d32;"><strong>Valid:</strong> 15 minutes before your event until 15 minutes after</p>
-          <p style="margin: 5px 0; color: #2e7d32; font-size: 14px;">Use this code on the smart lock at the main entrance</p>
+          <p style="margin: 5px 0; color: #2e7d32; font-size: 14px;">Use this code on the smart locks at the EAST entrance and kitchen</p>
         </div>
         ` : `
         <div class="access-fallback" style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">

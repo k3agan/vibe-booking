@@ -10,21 +10,24 @@ Add the following environment variables to your `.env.local` file:
 # Seam API Configuration
 SEAM_API_KEY=your_seam_api_key_here
 SEAM_LOCK_ID=your_smart_lock_device_id_here
+SEAM_KITCHEN_LOCK_ID=your_kitchen_lock_device_id_here
 ADMIN_EMAIL=info@caphillhall.ca
 ```
 
 ## Getting Your Seam Credentials
 
 1. **SEAM_API_KEY**: Get this from your Seam dashboard at https://console.seam.co/
-2. **SEAM_LOCK_ID**: Find this in your Seam dashboard under "Devices" - it's the device ID of your smart lock
-3. **ADMIN_EMAIL**: Email address to receive alerts when access code creation fails
+2. **SEAM_LOCK_ID**: Find this in your Seam dashboard under "Devices" - it's the device ID of your main entrance smart lock
+3. **SEAM_KITCHEN_LOCK_ID**: (Optional) Device ID of the kitchen smart lock - will receive the same access code as the main entrance
+4. **ADMIN_EMAIL**: Email address to receive alerts when access code creation fails
 
 ## How It Works
 
 1. **Reminder Email Job**: Runs 24-48 hours before each event
 2. **Access Code Creation**: Automatically creates a time-bound access code for each booking
-3. **Email Integration**: Access code is included in the reminder email
-4. **Error Handling**: If access code creation fails, admin gets an alert and customer sees fallback message
+3. **Dual Lock Support**: If `SEAM_KITCHEN_LOCK_ID` is configured, the same PIN code is automatically created for both the main entrance and kitchen locks
+4. **Email Integration**: Access code is included in the reminder email
+5. **Error Handling**: If main lock code creation fails, admin gets an alert. If kitchen lock fails but main succeeds, the code is still sent (kitchen failure is logged but non-blocking)
 
 ## Access Code Validity
 

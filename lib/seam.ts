@@ -7,6 +7,7 @@ const seam = new Seam({
 });
 
 const LOCK_ID = process.env.SEAM_LOCK_ID || '';
+const KITCHEN_LOCK_ID = process.env.SEAM_KITCHEN_LOCK_ID || '';
 
 /**
  * Normalizes a time string to HH:mm format
@@ -97,7 +98,7 @@ export async function createAccessCode(bookingData: {
     console.log(`- Access window (UTC): ${accessCodeStart.toISOString()} to ${accessCodeEnd.toISOString()}`);
     console.log(`- Access window (Vancouver): ${accessCodeStart.toLocaleString("en-US", {timeZone: vancouverTimezone})} to ${accessCodeEnd.toLocaleString("en-US", {timeZone: vancouverTimezone})}`);
 
-    // Create access code via Seam API
+    // Create access code for main door via Seam API
     const accessCode = await seam.accessCodes.create({
       device_id: LOCK_ID,
       name: `${bookingData.customerName} - ${bookingData.selectedDate}`,
@@ -110,7 +111,24 @@ export async function createAccessCode(bookingData: {
       throw new Error('Seam API returned access code but code is null/undefined');
     }
 
-    console.log(`✅ Access code created successfully: ${accessCode.code}`);
+    console.log(`✅ Main door access code created successfully: ${accessCode.code}`);
+
+    // Create matching access code for kitchen lock (same PIN)
+    if (KITCHEN_LOCK_ID) {
+      try {
+        await seam.accessCodes.create({
+          device_id: KITCHEN_LOCK_ID,
+          name: `${bookingData.customerName} - ${bookingData.selectedDate}`,
+          code: accessCode.code, // Use the same PIN as main door
+          starts_at: accessCodeStart.toISOString(),
+          ends_at: accessCodeEnd.toISOString(),
+        });
+        console.log(`✅ Kitchen lock access code created successfully: ${accessCode.code}`);
+      } catch (kitchenError) {
+        // Log but don't fail - main door code still works
+        console.error('⚠️ Failed to create kitchen lock access code:', kitchenError instanceof Error ? kitchenError.message : 'Unknown error');
+      }
+    }
 
     return {
       success: true,
@@ -128,43 +146,49 @@ export async function createAccessCode(bookingData: {
 }
 
 /**
- * Deletes access codes for a specific booking
+ * Deletes access codes for a specific booking from all locks
  * This is useful when a booking date/time is modified
  */
 export async function deleteAccessCodesForBooking(customerName: string, oldDate: string): Promise<void> {
-  try {
-    if (!process.env.SEAM_API_KEY || !LOCK_ID) {
-      console.log('Seam credentials not configured, skipping access code deletion');
-      return;
-    }
+  if (!process.env.SEAM_API_KEY || !LOCK_ID) {
+    console.log('Seam credentials not configured, skipping access code deletion');
+    return;
+  }
 
-    // List all access codes for the lock
-    const accessCodesResponse = await seam.accessCodes.list({
-      device_id: LOCK_ID,
-    });
+  const lockIds = [LOCK_ID, KITCHEN_LOCK_ID].filter(Boolean);
+  let totalDeleted = 0;
 
-    // Find codes that match the customer name and old date
-    const codesToDelete = (accessCodesResponse as any).access_codes?.filter((code: any) => 
-      code.name?.includes(`${customerName} - ${oldDate}`)
-    ) || [];
+  for (const lockId of lockIds) {
+    try {
+      // List all access codes for the lock
+      const accessCodesResponse = await seam.accessCodes.list({
+        device_id: lockId,
+      });
 
-    // Delete matching codes
-    for (const code of codesToDelete) {
-      try {
-        await seam.accessCodes.delete({
-          access_code_id: code.access_code_id,
-        });
-        console.log(`✅ Deleted old access code: ${code.name}`);
-      } catch (error) {
-        console.error(`❌ Failed to delete access code ${code.name}:`, error);
+      // Find codes that match the customer name and old date
+      const codesToDelete = (accessCodesResponse as any).access_codes?.filter((code: any) => 
+        code.name?.includes(`${customerName} - ${oldDate}`)
+      ) || [];
+
+      // Delete matching codes
+      for (const code of codesToDelete) {
+        try {
+          await seam.accessCodes.delete({
+            access_code_id: code.access_code_id,
+          });
+          console.log(`✅ Deleted old access code: ${code.name} (lock: ${lockId})`);
+          totalDeleted++;
+        } catch (error) {
+          console.error(`❌ Failed to delete access code ${code.name}:`, error);
+        }
       }
+    } catch (error) {
+      console.error(`❌ Error cleaning up access codes for lock ${lockId}:`, error);
     }
+  }
 
-    if (codesToDelete.length > 0) {
-      console.log(`🗑️ Cleaned up ${codesToDelete.length} old access codes for ${customerName}`);
-    }
-  } catch (error) {
-    console.error('❌ Error cleaning up old access codes:', error);
+  if (totalDeleted > 0) {
+    console.log(`🗑️ Cleaned up ${totalDeleted} old access codes for ${customerName}`);
   }
 }
 
