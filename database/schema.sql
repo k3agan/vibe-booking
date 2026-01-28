@@ -21,14 +21,18 @@ CREATE TABLE bookings (
   booking_type VARCHAR(20) NOT NULL CHECK (booking_type IN ('hourly', 'fullday')),
   duration INTEGER NOT NULL CHECK (duration > 0),
   calculated_price DECIMAL(10,2) NOT NULL CHECK (calculated_price >= 0),
-  payment_intent_id VARCHAR(255) UNIQUE NOT NULL,
-  payment_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'succeeded', 'failed', 'cancelled')),
+  payment_intent_id VARCHAR(255) UNIQUE,
+  payment_status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'succeeded', 'failed', 'cancelled', 'comped')),
   calendar_event_id VARCHAR(255),
   status VARCHAR(20) NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'cancelled', 'completed')),
   reminder_sent BOOLEAN DEFAULT FALSE,
   followup_sent BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  discount_code VARCHAR(100),
+  discount_type VARCHAR(20) CHECK (discount_type IN ('percent', 'fixed', 'full')),
+  discount_value DECIMAL(10,2),
+  comped BOOLEAN DEFAULT FALSE
 );
 
 -- Email logs table
@@ -50,6 +54,21 @@ CREATE INDEX idx_bookings_payment_status ON bookings(payment_status);
 CREATE INDEX idx_email_logs_booking_id ON email_logs(booking_id);
 CREATE INDEX idx_email_logs_type ON email_logs(email_type);
 
+-- Discount codes table
+CREATE TABLE discount_codes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  code VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT,
+  discount_type VARCHAR(20) NOT NULL CHECK (discount_type IN ('percent', 'fixed', 'full')),
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  uses_remaining INTEGER NOT NULL DEFAULT 1 CHECK (uses_remaining >= 0),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_discount_codes_code ON discount_codes(code);
+
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -68,6 +87,7 @@ CREATE TRIGGER update_bookings_updated_at
 -- Row Level Security (RLS) policies
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_codes ENABLE ROW LEVEL SECURITY;
 
 -- Allow public to insert bookings (for the booking form)
 CREATE POLICY "Allow public to insert bookings" ON bookings
@@ -83,6 +103,10 @@ CREATE POLICY "Allow service role to read all bookings" ON bookings
 
 -- Allow service role to manage email logs
 CREATE POLICY "Allow service role to manage email logs" ON email_logs
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- Allow service role to manage discount codes
+CREATE POLICY "Allow service role to manage discount codes" ON discount_codes
     FOR ALL USING (auth.role() = 'service_role');
 
 -- Sample data (optional - remove in production)

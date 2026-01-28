@@ -37,6 +37,8 @@ import { useStripeConfig } from '../hooks/useStripeConfig';
 import { trackPurchase, trackBeginCheckout } from '../../lib/gtm-events';
 import { calculateDaysUntilEvent } from '../../lib/enhanced-conversions';
 
+const FRIEND_CODE_REGEX = /(friend|discount)\s*code\s*[:#]\s*[a-z0-9_-]+/i;
+
 // Payment Form Component
 function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
   formData: any;
@@ -196,6 +198,8 @@ export default function BookNowPage() {
   const [bookingRef, setBookingRef] = useState('');
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [friendBookingError, setFriendBookingError] = useState<string | null>(null);
+  const [isFriendBookingProcessing, setIsFriendBookingProcessing] = useState(false);
   const [showRentalAgreement, setShowRentalAgreement] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
 
@@ -251,6 +255,10 @@ export default function BookNowPage() {
     };
     
     setFormData(newFormData);
+
+    if (field === 'specialRequirements') {
+      setFriendBookingError(null);
+    }
     
     // Track begin_checkout when user starts filling the form
     if (['name', 'email', 'phone'].includes(field) && value && !(formData as Record<string, any>)[field]) {
@@ -362,9 +370,49 @@ export default function BookNowPage() {
     });
   };
 
-  const handleAgreementAccept = () => {
+  const handleFriendBookingSuccess = (ref: string) => {
+    setBookingRef(ref);
+    setBookingSuccess(true);
+  };
+
+  const handleAgreementAccept = async () => {
     setAgreementAccepted(true);
     setShowRentalAgreement(false);
+
+    if (FRIEND_CODE_REGEX.test(formData.specialRequirements || '')) {
+      setIsFriendBookingProcessing(true);
+      setFriendBookingError(null);
+      try {
+        const response = await fetch('/api/friend-booking', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookingData: formData,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          setFriendBookingError(result.error || 'Friend booking failed. Please continue with payment.');
+          setShowPaymentForm(true);
+          return;
+        }
+
+        handleFriendBookingSuccess(result.bookingRef);
+        return;
+      } catch (error) {
+        console.error('Friend booking error:', error);
+        setFriendBookingError('Friend booking failed. Please continue with payment.');
+        setShowPaymentForm(true);
+        return;
+      } finally {
+        setIsFriendBookingProcessing(false);
+      }
+    }
+
     setShowPaymentForm(true);
     console.log('Agreement accepted, showing payment form');
   };
@@ -686,6 +734,18 @@ export default function BookNowPage() {
                   {isCheckingAvailability ? 'Checking Availability...' : 'Review Rental Agreement'}
                 </Button>
               </form>
+
+              {isFriendBookingProcessing && (
+                <Alert severity="info" sx={{ mt: 3 }}>
+                  Processing friend booking...
+                </Alert>
+              )}
+
+              {friendBookingError && (
+                <Alert severity="warning" sx={{ mt: 3 }}>
+                  {friendBookingError}
+                </Alert>
+              )}
 
               {/* Payment Form */}
               {showPaymentForm && (

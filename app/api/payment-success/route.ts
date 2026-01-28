@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
 import { getStripeApiKey } from '@/lib/api-key-rotation';
 import { sendConversionToGoogleAds, calculateDaysUntilEvent } from '../../../lib/enhanced-conversions';
+import { calculateBookingPrice, calculateEventTimes, createCalendarEventForBooking } from '../../../lib/booking';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -23,41 +24,10 @@ export async function POST(request: NextRequest) {
     const bookingRef = `CHH-${Date.now()}`;
 
     // Calculate pricing
-    const isWeekend = [5, 6, 0].includes(new Date(bookingData.selectedDate).getDay()); // Fri, Sat, Sun
-    const hourlyRate = isWeekend ? 100 : 50;
-    const fullDayRate = isWeekend ? 900 : 750;
-    
-    let calculatedPrice = 0;
-    if (bookingData.bookingType === 'fullday') {
-      calculatedPrice = fullDayRate;
-    } else {
-      calculatedPrice = hourlyRate * bookingData.duration;
-    }
+    const calculatedPrice = calculateBookingPrice(bookingData);
 
     // Calculate event times
-    // Extract just the date part (YYYY-MM-DD) from the selectedDate
-    const dateOnly = bookingData.selectedDate.split('T')[0];
-    const vancouverTimezone = 'America/Vancouver';
-    let startDateTime, endDateTime;
-    
-    if (bookingData.bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM Pacific Time (ignore user-provided start time)
-      // Create dates in Vancouver timezone and convert to UTC
-      const startTimeStr = `${dateOnly} 08:00:00`;
-      const endTimeStr = `${dateOnly} 23:00:00`;
-      
-      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
-    } else {
-      // Hourly: use user-provided start time and add duration in Pacific Time
-      const startTimeStr = `${dateOnly} ${bookingData.startTime}:00`;
-      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      
-      // Calculate end time by adding duration to start time in Pacific timezone
-      const endTimeStr = `${dateOnly} ${bookingData.startTime}:00`;
-      const endTimeDate = fromZonedTime(endTimeStr, vancouverTimezone);
-      endDateTime = new Date(endTimeDate.getTime() + (bookingData.duration * 60 * 60 * 1000));
-    }
+    const { dateOnly, startDateTime, endDateTime } = calculateEventTimes(bookingData);
 
     console.log('Date calculation:', {
       selectedDate: bookingData.selectedDate,
@@ -69,92 +39,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create calendar event (with production error handling)
-    let calendarEventId: string | undefined;
-    try {
-      // Check if we're in production and disable calendar creation if there are key issues
-      if (process.env.NODE_ENV === 'production' && !process.env.GOOGLE_PRIVATE_KEY) {
-        console.log('Calendar event creation disabled in production - missing private key');
-        console.log('Booking details for manual entry:', {
-          eventType: bookingData.eventType,
-          name: bookingData.name,
-          email: bookingData.email,
-          phone: bookingData.phone,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
-          guestCount: bookingData.guestCount
-        });
-      } else {
-        // Import the calendar API function directly instead of making HTTP request
-        const { google } = await import('googleapis');
-        
-        // Initialize Google Calendar API
-        const calendar = google.calendar({ version: 'v3' });
-        
-        // Set up authentication with better error handling
-        const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-        
-        if (!privateKey || !process.env.GOOGLE_CLIENT_EMAIL) {
-          throw new Error('Missing Google Calendar credentials');
-        }
-        
-        const auth = new google.auth.GoogleAuth({
-          credentials: {
-            client_email: process.env.GOOGLE_CLIENT_EMAIL,
-            private_key: privateKey,
-          },
-          scopes: ['https://www.googleapis.com/auth/calendar'],
-        });
-
-        const calendarId = process.env.GOOGLE_CALENDAR_ID || 'capitolhillhallrent@gmail.com';
-        const authClient = await auth.getClient();
-
-        // Create event details
-        const eventSummary = `${bookingData.eventType} - ${bookingData.name}`;
-        const eventDescription = `
-Event Type: ${bookingData.eventType}
-Contact: ${bookingData.name} (${bookingData.email}, ${bookingData.phone})
-Attendees: ${bookingData.guestCount} people
-${bookingData.organization ? `Organization: ${bookingData.organization}` : ''}
-${bookingData.specialRequirements ? `Special Requirements: ${bookingData.specialRequirements}` : ''}
-
-Booking Details:
-- Duration: ${bookingData.bookingType === 'hourly' ? `${bookingData.duration} hours` : 'Full day'}
-- Start Time: ${new Date(startDateTime.toISOString()).toLocaleString()}
-- End Time: ${new Date(endDateTime.toISOString()).toLocaleString()}
-        `.trim();
-
-        // Create the calendar event
-        const event = await calendar.events.insert({
-          auth: authClient as any,
-          calendarId,
-          requestBody: {
-            summary: eventSummary,
-            description: eventDescription,
-            start: {
-              dateTime: startDateTime.toISOString(),
-              timeZone: 'America/Vancouver',
-            },
-            end: {
-              dateTime: endDateTime.toISOString(),
-              timeZone: 'America/Vancouver',
-            },
-            reminders: {
-              useDefault: false,
-              overrides: [
-                { method: 'email', minutes: 24 * 60 }, // 1 day before
-                { method: 'popup', minutes: 60 }, // 1 hour before
-              ],
-            },
-          },
-        });
-
-        calendarEventId = event.data?.id || undefined;
-        console.log('Calendar event created:', calendarEventId);
-      }
-    } catch (calendarError) {
-      console.error('Calendar error:', calendarError);
-      // Don't fail the booking if calendar creation fails
-    }
+    const calendarEventId = await createCalendarEventForBooking(bookingData, startDateTime, endDateTime);
 
     // Save booking to database
     let savedBooking;

@@ -16,8 +16,13 @@ export async function createBooking(bookingData: {
   bookingType: 'hourly' | 'fullday'
   duration: number
   calculatedPrice: number
-  paymentIntentId: string
+  paymentIntentId?: string | null
+  paymentStatus?: 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'comped'
   calendarEventId?: string
+  discountCode?: string | null
+  discountType?: 'percent' | 'fixed' | 'full' | null
+  discountValue?: number | null
+  comped?: boolean
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -36,10 +41,14 @@ export async function createBooking(bookingData: {
       booking_type: bookingData.bookingType,
       duration: bookingData.duration,
       calculated_price: bookingData.calculatedPrice,
-      payment_intent_id: bookingData.paymentIntentId,
+      payment_intent_id: bookingData.paymentIntentId ?? null,
       calendar_event_id: bookingData.calendarEventId,
-      payment_status: 'succeeded',
-      status: 'confirmed'
+      payment_status: bookingData.paymentStatus ?? 'succeeded',
+      status: 'confirmed',
+      discount_code: bookingData.discountCode ?? null,
+      discount_type: bookingData.discountType ?? null,
+      discount_value: bookingData.discountValue ?? null,
+      comped: bookingData.comped ?? false
     })
     .select()
     .single()

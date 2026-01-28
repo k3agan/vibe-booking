@@ -23,6 +23,7 @@ export interface BookingConfirmation {
   calculatedPrice: number;
   startDateTime: string;
   endDateTime: string;
+  comped?: boolean;
 }
 
 export async function sendBookingConfirmation(confirmation: BookingConfirmation) {
@@ -111,6 +112,7 @@ export async function sendPostEventFollowUp(bookingData: {
 function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
   const vancouverTimezone = 'America/Vancouver';
+  const isComped = confirmation.comped || calculatedPrice === 0;
   
   // Convert UTC times to Vancouver timezone for display
   const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
@@ -189,7 +191,7 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
           ` : ''}
           <div class="detail-row total">
             <span>Total Amount Paid:</span>
-            <span>$${calculatedPrice.toFixed(2)} CAD</span>
+            <span>$${calculatedPrice.toFixed(2)} CAD${isComped ? ' (Comped)' : ''}</span>
           </div>
         </div>
 
@@ -224,6 +226,7 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
 function generateManagementEmailHTML(confirmation: BookingConfirmation): string {
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
   const vancouverTimezone = 'America/Vancouver';
+  const isComped = confirmation.comped || calculatedPrice === 0;
   
   // Convert UTC times to Vancouver timezone for display
   const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
@@ -284,7 +287,7 @@ function generateManagementEmailHTML(confirmation: BookingConfirmation): string 
           </div>
           <div class="detail-row total">
             <span>Revenue:</span>
-            <span>$${calculatedPrice.toFixed(2)} CAD</span>
+            <span>$${calculatedPrice.toFixed(2)} CAD${isComped ? ' (Comped)' : ''}</span>
           </div>
         </div>
 

@@ -22,8 +22,8 @@ export interface Booking {
   booking_type: 'hourly' | 'fullday'
   duration: number
   calculated_price: number
-  payment_intent_id: string
-  payment_status: 'pending' | 'succeeded' | 'failed' | 'cancelled'
+  payment_intent_id?: string | null
+  payment_status: 'pending' | 'succeeded' | 'failed' | 'cancelled' | 'comped'
   calendar_event_id?: string
   status: 'confirmed' | 'cancelled' | 'completed'
   created_at: string
@@ -35,6 +35,10 @@ export interface Booking {
   damage_deposit_authorization_id?: string
   damage_deposit_authorization_status?: 'pending' | 'authorized' | 'captured' | 'released' | 'expired'
   damage_deposit_authorized_at?: string
+  discount_code?: string | null
+  discount_type?: 'percent' | 'fixed' | 'full' | null
+  discount_value?: number | null
+  comped?: boolean
 }
 
 export interface EmailLog {
