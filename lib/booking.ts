@@ -89,7 +89,7 @@ export async function createCalendarEventForBooking(
       throw new Error('Missing Google Calendar credentials');
     }
 
-    const auth = new google.auth.GoogleAuth({
+    const auth = new googleApi.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
         private_key: privateKey,

@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         specialRequirements: bookingData.specialRequirements,
         selectedDate: dateOnly,
         startTime: bookingData.startTime,
-        endTime: format(toZonedTime(endDateTime, vancouverTimezone), 'HH:mm', { timeZone: vancouverTimezone }),
+        endTime: format(toZonedTime(endDateTime, 'America/Vancouver'), 'HH:mm', { timeZone: 'America/Vancouver' }),
         bookingType: bookingData.bookingType,
         duration: bookingData.duration,
         calculatedPrice,
