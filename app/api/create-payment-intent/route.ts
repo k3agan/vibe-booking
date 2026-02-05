@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeApiKey } from '@/lib/api-key-rotation';
+import { calculateBookingPriceWithSurcharges, validateBookingTimes } from '@/lib/booking';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -20,15 +21,33 @@ export async function POST(request: NextRequest) {
 
     const { amount, bookingData } = await request.json();
 
+    const timeValidation = validateBookingTimes(bookingData);
+    if (!timeValidation.valid) {
+      return NextResponse.json(
+        { error: timeValidation.error || 'Invalid booking time selection.' },
+        { status: 400 }
+      );
+    }
+
+    const pricing = calculateBookingPriceWithSurcharges(bookingData);
+    const computedAmount = pricing.totalPrice;
+
     // Validate amount
-    if (!amount || amount <= 0) {
+    if (!computedAmount || computedAmount <= 0) {
       return NextResponse.json(
         { error: 'Invalid amount' },
         { status: 400 }
       );
     }
 
-    console.log('Creating payment intent for amount:', amount);
+    if (amount && Number(amount) !== computedAmount) {
+      console.warn('Client amount mismatch, using computed amount instead:', {
+        clientAmount: amount,
+        computedAmount,
+      });
+    }
+
+    console.log('Creating payment intent for amount:', computedAmount);
 
     // Create or retrieve Stripe customer
     let customer;
@@ -71,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Create payment intent with setup_future_usage to save payment method
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: Math.round(computedAmount * 100), // Convert to cents
       currency: 'cad',
       customer: customer?.id, // Associate with customer if created
       metadata: {
@@ -87,6 +106,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
+      computedAmount,
+      surchargeTotal: pricing.surchargeTotal,
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);

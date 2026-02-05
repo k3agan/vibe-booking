@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { format, toZonedTime } from 'date-fns-tz';
 import { createBooking, logEmailSent } from '../../../lib/database';
 import { sendBookingConfirmation } from '../../lib/email';
-import { calculateBookingPrice, calculateEventTimes, createCalendarEventForBooking } from '../../../lib/booking';
+import {
+  calculateBookingPriceWithSurcharges,
+  calculateEventTimes,
+  validateBookingTimes
+} from '../../../lib/booking';
+import { createCalendarEventForBooking } from '../../../lib/booking-server';
 import { validateAndConsumeDiscountCode } from '../../../lib/discount-codes';
 
 const FRIEND_CODE_REGEX = /(friend|discount)\s*code\s*[:#]\s*([a-z0-9_-]+)/i;
@@ -31,8 +35,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required booking fields' }, { status: 400 });
     }
 
-    if (bookingData.bookingType === 'hourly' && !bookingData.startTime) {
-      return NextResponse.json({ error: 'Start time is required for hourly bookings' }, { status: 400 });
+    const timeValidation = validateBookingTimes(bookingData);
+    if (!timeValidation.valid) {
+      return NextResponse.json({ error: timeValidation.error || 'Invalid booking time selection.' }, { status: 400 });
     }
 
     const friendCode = extractFriendCode(bookingData.specialRequirements);
@@ -47,7 +52,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or expired friend code' }, { status: 400 });
     }
 
-    const basePrice = calculateBookingPrice(bookingData);
+    const pricing = calculateBookingPriceWithSurcharges(bookingData);
+    const basePrice = pricing.totalPrice;
     let discountedPrice = basePrice;
 
     if (discountCode.discount_type === 'full') {
@@ -70,11 +76,10 @@ export async function POST(request: NextRequest) {
     const bookingRef = `CHH-${Date.now()}`;
     const sanitizedBookingData = {
       ...bookingData,
-      startTime: bookingData.bookingType === 'fullday' ? '08:00' : bookingData.startTime,
       specialRequirements: stripFriendCode(bookingData.specialRequirements),
     };
 
-    const { dateOnly, startDateTime, endDateTime } = calculateEventTimes(sanitizedBookingData);
+    const { dateOnly, startDateTime, endDateTime, startTime, endTime } = calculateEventTimes(sanitizedBookingData);
 
     const calendarEventId = await createCalendarEventForBooking(
       sanitizedBookingData,
@@ -92,16 +97,18 @@ export async function POST(request: NextRequest) {
       guestCount: parseInt(sanitizedBookingData.guestCount),
       specialRequirements: sanitizedBookingData.specialRequirements,
       selectedDate: dateOnly,
-      startTime: sanitizedBookingData.startTime,
-      endTime: format(toZonedTime(endDateTime, 'America/Vancouver'), 'HH:mm', {
-        timeZone: 'America/Vancouver',
-      }),
+      startTime,
+      endTime,
       bookingType: sanitizedBookingData.bookingType,
       duration: sanitizedBookingData.duration,
       calculatedPrice: discountedPrice,
       paymentIntentId: null,
       paymentStatus: 'comped',
       calendarEventId,
+      earlyAccessOption: sanitizedBookingData.earlyAccessOption ?? 'none',
+      lateAccessOption: sanitizedBookingData.lateAccessOption ?? 'none',
+      surchargeTotal: pricing.surchargeTotal,
+      pricingBreakdown: pricing.items,
       discountCode: discountCode.code,
       discountType: discountCode.discount_type,
       discountValue: discountCode.discount_value,
@@ -116,6 +123,8 @@ export async function POST(request: NextRequest) {
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
         comped: true,
+        pricingBreakdown: pricing.items,
+        surchargeTotal: pricing.surchargeTotal,
       });
 
       if (emailResult.success) {

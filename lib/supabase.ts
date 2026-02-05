@@ -39,6 +39,10 @@ export interface Booking {
   discount_type?: 'percent' | 'fixed' | 'full' | null
   discount_value?: number | null
   comped?: boolean
+  early_access_option?: 'none' | 'standard' | 'extra' | null
+  late_access_option?: 'none' | 'standard' | 'after_midnight' | null
+  surcharge_total?: number | null
+  pricing_breakdown?: unknown
 }
 
 export interface EmailLog {

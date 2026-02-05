@@ -20,10 +20,10 @@ export default function PoliciesPage() {
         <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 3, color: 'text.secondary' }}>
            <li><strong>Payment:</strong> Full balance and damage deposit due 31 days prior to event</li>
            <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450)</li>
-           <li><strong>Event Hours:</strong> All guests must vacate by 11:00 PM; hall cleaned and vacated by 12:00 AM</li>
+          <li><strong>Event Hours:</strong> Standard bookings end at 10:00 PM. Late access is available for a fee until 12:00 AM; after-midnight access can extend until 2:00 AM when arranged in advance.</li>
            <li><strong>Decorations:</strong> No confetti, rice, glitter, beads, or similar items; no wall attachments</li>
            <li><strong>Alcohol:</strong> Requires liquor license, Serving it Right, Food Safe, and additional $200,000 insurance</li>
-           <li><strong>Noise:</strong> Music must cease at 11:00 PM; respect Burnaby noise bylaws</li>
+          <li><strong>Noise:</strong> Music must cease at your booked end time; respect Burnaby noise bylaws</li>
            <li><strong>Capacity:</strong> Maximum 140 persons; clear access to fire exits required</li>
            <li><strong>Insurance:</strong> Renter must provide liability insurance proof at time of deposit</li>
            <li><strong>Setup/Cleanup:</strong> Renter responsible for all setup, takedown, and cleaning per checklist</li>

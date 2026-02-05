@@ -1,6 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { fromZonedTime } from 'date-fns-tz';
+import { calculateEventTimes, validateBookingTimes } from '@/lib/booking';
 
 // Initialize Google Calendar API
 const calendar = google.calendar({ version: 'v3' });
@@ -17,7 +17,7 @@ const calendarId = process.env.GOOGLE_CALENDAR_ID || 'capitolhillhallrent@gmail.
 
 export async function POST(request: NextRequest) {
   try {
-    const { selectedDate, startTime, duration, bookingType } = await request.json();
+    const { selectedDate, startTime, duration, bookingType, earlyAccessOption, lateAccessOption } = await request.json();
 
     if (!selectedDate) {
       return NextResponse.json(
@@ -26,10 +26,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For hourly bookings, start time is required
-    if (bookingType === 'hourly' && !startTime) {
+    const timeValidation = validateBookingTimes({
+      selectedDate,
+      startTime,
+      duration,
+      bookingType,
+      earlyAccessOption,
+      lateAccessOption,
+    });
+    if (!timeValidation.valid) {
       return NextResponse.json(
-        { error: 'Start time is required for hourly bookings' },
+        { error: timeValidation.error || 'Invalid booking time selection.' },
         { status: 400 }
       );
     }
@@ -50,27 +57,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate start and end times
-    const vancouverTimezone = 'America/Vancouver';
-    let startDateTime, endDateTime;
-    
-    if (bookingType === 'fullday') {
-      // Full day: 8 AM to 11 PM Pacific Time (ignore user-provided start time)
-      // Create dates in Vancouver timezone and convert to UTC
-      const startTimeStr = `${selectedDate} 08:00:00`;
-      const endTimeStr = `${selectedDate} 23:00:00`;
-      
-      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
-    } else {
-      // Hourly: use user-provided start time and add duration in Pacific Time
-      const startTimeStr = `${selectedDate} ${startTime}:00`;
-      startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
-      
-      // Calculate end time by adding duration to start time in Pacific timezone
-      const endTimeStr = `${selectedDate} ${startTime}:00`;
-      const endTimeDate = fromZonedTime(endTimeStr, vancouverTimezone);
-      endDateTime = new Date(endTimeDate.getTime() + (duration * 60 * 60 * 1000));
-    }
+    const { startDateTime, endDateTime } = calculateEventTimes({
+      selectedDate,
+      startTime,
+      duration,
+      bookingType,
+      earlyAccessOption,
+      lateAccessOption,
+    });
 
     const authClient = await auth.getClient();
 

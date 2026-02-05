@@ -23,6 +23,10 @@ export async function createBooking(bookingData: {
   discountType?: 'percent' | 'fixed' | 'full' | null
   discountValue?: number | null
   comped?: boolean
+  earlyAccessOption?: 'none' | 'standard' | 'extra'
+  lateAccessOption?: 'none' | 'standard' | 'after_midnight'
+  surchargeTotal?: number
+  pricingBreakdown?: unknown
 }) {
   const { data, error } = await supabase
     .from('bookings')
@@ -48,7 +52,11 @@ export async function createBooking(bookingData: {
       discount_code: bookingData.discountCode ?? null,
       discount_type: bookingData.discountType ?? null,
       discount_value: bookingData.discountValue ?? null,
-      comped: bookingData.comped ?? false
+      comped: bookingData.comped ?? false,
+      early_access_option: bookingData.earlyAccessOption ?? null,
+      late_access_option: bookingData.lateAccessOption ?? null,
+      surcharge_total: bookingData.surchargeTotal ?? null,
+      pricing_breakdown: bookingData.pricingBreakdown ?? null
     })
     .select()
     .single()

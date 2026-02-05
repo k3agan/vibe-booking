@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Link as MuiLink, Button } from '@mui/material';
+import { Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Link as MuiLink, Button, Tooltip } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { trackSelectContent } from '../../lib/gtm-events';
 
 // Rental rates data
@@ -33,7 +34,7 @@ export default function RatesPage() {
             <TableRow sx={{ '& th': { fontWeight: 'bold' } }}>
               <TableCell>Rate Category</TableCell>
               <TableCell align="right">Hourly Rate</TableCell>
-              <TableCell align="right">Full-Day (8hrs+)</TableCell>
+              <TableCell align="right">Full-Day (8am-10pm)</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -57,6 +58,18 @@ export default function RatesPage() {
         <Typography variant="body2" component="ul" sx={{ pl: 2 }}>
           <li><strong>Weekday Rates:</strong> Monday-Thursday, $50/hour or $750 for full day - limited availability</li>
           <li><strong>Weekend Rates:</strong> Friday-Sunday, $100/hour or $900 for full day</li>
+          <li>
+            <strong>Standard Hours:</strong> These rates apply during regular hours (8:00 AM - 10:00 PM)
+            <Tooltip
+              arrow
+              placement="top"
+              title="Additional fees may apply for early/late access."
+            >
+              <Box component="span" sx={{ display: 'inline-flex', ml: 0.5, verticalAlign: 'middle', color: 'text.secondary' }}>
+                <InfoOutlinedIcon fontSize="small" />
+              </Box>
+            </Tooltip>
+          </li>
         </Typography>
       </Box>
 

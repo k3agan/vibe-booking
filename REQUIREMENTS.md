@@ -84,7 +84,7 @@ Pricing Calculator: Real-time cost calculation based on rates
 Payment Processing: Stripe integration for secure payments
 3.5.3. Availability System:
 Google Calendar integration for real-time availability checking
-Opening hours: 6:00 AM to 11:00 PM
+Opening hours: 5:00 AM to 2:00 AM (standard 8:00 AM to 10:00 PM; early/late access for a fee)
 Weekday availability: Evenings and afternoons only (Monday-Thursday)
 Weekend availability: Full day options (Friday-Sunday)
 Prevents double-booking by checking calendar availability

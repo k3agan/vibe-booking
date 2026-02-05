@@ -36,6 +36,11 @@ import RentalAgreement from '../components/RentalAgreement';
 import { useStripeConfig } from '../hooks/useStripeConfig';
 import { trackPurchase, trackBeginCheckout } from '../../lib/gtm-events';
 import { calculateDaysUntilEvent } from '../../lib/enhanced-conversions';
+import {
+  calculateBookingPriceWithSurcharges,
+  getBookingWindowTimeStrings,
+  validateBookingTimes
+} from '../../lib/booking';
 
 const FRIEND_CODE_REGEX = /(friend|discount)\s*code\s*[:#]\s*[a-z0-9_-]+/i;
 
@@ -190,9 +195,12 @@ export default function BookNowPage() {
     // Duration Selection
     bookingType: 'hourly' as 'hourly' | 'fullday',
     duration: 1, // hours for hourly booking
+    earlyAccessOption: 'none' as 'none' | 'standard' | 'extra',
+    lateAccessOption: 'none' as 'none' | 'standard' | 'after_midnight',
   });
 
   const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [pricingBreakdown, setPricingBreakdown] = useState<ReturnType<typeof calculateBookingPriceWithSurcharges> | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingRef, setBookingRef] = useState('');
@@ -203,10 +211,10 @@ export default function BookNowPage() {
   const [showRentalAgreement, setShowRentalAgreement] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
 
-  // Generate time options with 30-minute granularity (6 AM to 11 PM)
+  // Generate time options with 30-minute granularity (5 AM to 11:30 PM)
   const generateTimeOptions = () => {
     const options = [];
-    for (let hour = 6; hour <= 23; hour++) {
+    for (let hour = 5; hour <= 23; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         const displayTime = new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
@@ -221,32 +229,57 @@ export default function BookNowPage() {
   };
 
   const timeOptions = generateTimeOptions();
+  const formatTimeLabel = (timeString: string) => {
+    const [hour, minute] = timeString.split(':').map(Number);
+    return new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   // Update price when form data changes
   useEffect(() => {
-    setCalculatedPrice(calculatePrice());
-  }, [formData.selectedDate, formData.bookingType, formData.duration]);
-
-  // Pricing calculation
-  const calculatePrice = () => {
-    const { selectedDate, bookingType, duration } = formData;
-    
-    if (!selectedDate) return 0;
-    
-    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0; // Fri, Sat, Sun
-    
-    let basePrice = 0;
-    
-    if (bookingType === 'fullday') {
-      basePrice = isWeekend ? 900 : 750;
-    } else {
-      const hourlyRate = isWeekend ? 100 : 50;
-      basePrice = hourlyRate * duration;
+    if (!formData.selectedDate) {
+      setCalculatedPrice(0);
+      setPricingBreakdown(null);
+      return;
     }
-    
-    return basePrice;
-  };
+
+    if (formData.bookingType === 'hourly' && !formData.startTime) {
+      const dayOfWeek = formData.selectedDate.getDay();
+      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+      const hourlyRate = isWeekend ? 100 : 50;
+      const basePrice = Number((hourlyRate * formData.duration).toFixed(2));
+      setCalculatedPrice(basePrice);
+      setPricingBreakdown({
+        basePrice,
+        baseRate: hourlyRate,
+        surchargeTotal: 0,
+        totalPrice: basePrice,
+        items: [],
+      });
+      return;
+    }
+
+    const breakdown = calculateBookingPriceWithSurcharges({
+      selectedDate: formData.selectedDate,
+      startTime: formData.startTime,
+      bookingType: formData.bookingType,
+      duration: formData.duration,
+      earlyAccessOption: formData.earlyAccessOption,
+      lateAccessOption: formData.lateAccessOption,
+    });
+    setCalculatedPrice(breakdown.totalPrice);
+    setPricingBreakdown(breakdown);
+  }, [
+    formData.selectedDate,
+    formData.bookingType,
+    formData.duration,
+    formData.startTime,
+    formData.earlyAccessOption,
+    formData.lateAccessOption,
+  ]);
 
   const handleInputChange = (field: string, value: any) => {
     const newFormData = {
@@ -265,23 +298,7 @@ export default function BookNowPage() {
       trackBeginCheckout('CAD', calculatedPrice);
     }
     
-    // Recalculate price when relevant fields change
-    if (['selectedDate', 'bookingType', 'duration', 'startTime'].includes(field)) {
-      // Use the new form data for calculation
-      const dayOfWeek = newFormData.selectedDate?.getDay() || 0;
-      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-      
-      let basePrice = 0;
-      
-      if (newFormData.bookingType === 'fullday') {
-        basePrice = isWeekend ? 900 : 750;
-      } else {
-        const hourlyRate = isWeekend ? 100 : 50;
-        basePrice = hourlyRate * newFormData.duration;
-      }
-      
-      setCalculatedPrice(basePrice);
-    }
+    // Pricing recalculated in useEffect
   };
 
   const checkAvailability = async () => {
@@ -299,6 +316,8 @@ export default function BookNowPage() {
           startTime: formData.startTime,
           duration: formData.duration,
           bookingType: formData.bookingType,
+          earlyAccessOption: formData.earlyAccessOption,
+          lateAccessOption: formData.lateAccessOption,
         }),
       });
 
@@ -339,11 +358,20 @@ export default function BookNowPage() {
       return;
     }
     
-    // For full-day bookings, set default start time to 8 AM
-    if (formData.bookingType === 'fullday' && !formData.startTime) {
-      setFormData(prev => ({ ...prev, startTime: '08:00' }));
+    const timeValidation = validateBookingTimes({
+      selectedDate: formData.selectedDate,
+      startTime: formData.startTime,
+      bookingType: formData.bookingType,
+      duration: formData.duration,
+      earlyAccessOption: formData.earlyAccessOption,
+      lateAccessOption: formData.lateAccessOption,
+    });
+
+    if (!timeValidation.valid) {
+      setAvailabilityError(timeValidation.error || 'Invalid booking time selected.');
+      return;
     }
-    
+
     // Check availability first
     const isAvailable = await checkAvailability();
     if (!isAvailable) {
@@ -666,8 +694,39 @@ export default function BookNowPage() {
 
                 {formData.bookingType === 'fullday' && (
                   <Alert severity="info" sx={{ mb: 3 }}>
-                    Full-day bookings run from 8:00 AM to 11:00 PM
+                    Full-day bookings run from 8:00 AM to 10:00 PM (early/late access available for a fee).
                   </Alert>
+                )}
+
+                {formData.bookingType === 'fullday' && (
+                  <Grid container spacing={3} sx={{ mb: 4 }}>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Early Access</InputLabel>
+                        <Select
+                          value={formData.earlyAccessOption}
+                          onChange={(e) => handleInputChange('earlyAccessOption', e.target.value)}
+                        >
+                          <MenuItem value="none">No Early Access</MenuItem>
+                          <MenuItem value="standard">Standard Early (6:00 AM - 8:00 AM)</MenuItem>
+                          <MenuItem value="extra">Extra Early (5:00 AM - 6:00 AM)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Late Access</InputLabel>
+                        <Select
+                          value={formData.lateAccessOption}
+                          onChange={(e) => handleInputChange('lateAccessOption', e.target.value)}
+                        >
+                          <MenuItem value="none">No Late Access</MenuItem>
+                          <MenuItem value="standard">Standard Late (10:00 PM - 12:00 AM)</MenuItem>
+                          <MenuItem value="after_midnight">After Midnight (12:00 AM - 2:00 AM)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
                 )}
 
                 <Divider sx={{ my: 3 }} />
@@ -787,6 +846,24 @@ export default function BookNowPage() {
                     <Typography variant="body2" color="text.secondary">
                       Type: {formData.bookingType === 'hourly' ? 'Hourly' : 'Full Day'}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Time: {(() => {
+                        if (formData.bookingType === 'hourly' && !formData.startTime) {
+                          return 'TBD';
+                        }
+
+                        const windowTimes = getBookingWindowTimeStrings({
+                          selectedDate: formData.selectedDate,
+                          startTime: formData.startTime,
+                          bookingType: formData.bookingType,
+                          duration: formData.duration,
+                          earlyAccessOption: formData.earlyAccessOption,
+                          lateAccessOption: formData.lateAccessOption,
+                        });
+                        const endSuffix = windowTimes.endDayOffset > 0 ? ' (next day)' : '';
+                        return `${formatTimeLabel(windowTimes.startTime)} - ${formatTimeLabel(windowTimes.endTime)}${endSuffix}`;
+                      })()}
+                    </Typography>
                     {formData.bookingType === 'hourly' && (
                       <Typography variant="body2" color="text.secondary">
                         Duration: {formData.duration} {formData.duration === 1 ? 'Hour' : 'Hours'}
@@ -811,20 +888,48 @@ export default function BookNowPage() {
                   const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
                   const hourlyRate = isWeekend ? 100 : 50;
                   const fullDayRate = isWeekend ? 900 : 750;
-                  
+                  const breakdown = pricingBreakdown;
+
                   return (
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">
-                        {formData.bookingType === 'hourly' 
-                          ? `Hourly Rate (${isWeekend ? 'Weekend' : 'Weekday'})` 
-                          : `Full Day Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
-                        }
-                      </Typography>
-                      <Typography variant="body2">
-                        ${formData.bookingType === 'hourly' ? hourlyRate : fullDayRate}
-                        {formData.bookingType === 'hourly' && ` × ${formData.duration}`}
-                      </Typography>
-                    </Box>
+                    <>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Typography variant="body2">
+                          {formData.bookingType === 'hourly'
+                            ? `Hourly Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
+                            : `Full Day Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
+                          }
+                        </Typography>
+                        <Typography variant="body2">
+                          ${formData.bookingType === 'hourly' ? hourlyRate : fullDayRate}
+                          {formData.bookingType === 'hourly' && ` × ${formData.duration}`}
+                        </Typography>
+                      </Box>
+                      {breakdown?.items.map((item) => {
+                        const multiplierText = formData.bookingType === 'fullday'
+                          ? `x${item.percent.toFixed(2)}`
+                          : `+${Math.round(item.percent * 100)}%`;
+                        return (
+                        <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            {item.label} ({item.hours.toFixed(1)} hrs, {multiplierText})
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            ${item.amount.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        );
+                      })}
+                      {breakdown && breakdown.items.length > 0 && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            Fee Total
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                            ${breakdown.surchargeTotal.toFixed(2)}
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
                   );
                 })()}
 

@@ -62,8 +62,8 @@ export const hallInfo: HallInfo = {
     { title: "Decorations", details: "No confetti, rice, glitter, beads, gum, or similar items. No nails, tape, tacks, pins, screws, staples, or similar items on any surfaces." },
     { title: "Alcohol", details: "Not allowed unless the Renter has obtained and presented necessary licenses (Liquor/cannabis, Serving it Right, Food Safe) and additional special event liability and liquor liability insurance ($200,000)." },
     { title: "Insurance", details: "Renter must obtain insurance covering all liabilities. Proof required. Renter indemnifies the Association against all claims." },
-    { title: "Music/Noise", details: "All music must cease at 11:00 p.m. Be aware of Burnaby noise bylaws." },
-    { title: "Cleanup", details: "Renter responsible for cleaning the Hall after function as per the Hall Closing Checklist (sweeping, mopping, garbage/recycling disposal, etc.). Hall must be cleaned and vacated by 12 midnight." },
+    { title: "Music/Noise", details: "All music must cease at your booked end time. Standard bookings end at 10:00 p.m.; late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Be aware of Burnaby noise bylaws." },
+    { title: "Cleanup", details: "Renter responsible for cleaning the Hall after function as per the Hall Closing Checklist (sweeping, mopping, garbage/recycling disposal, etc.). Hall must be cleaned and vacated by your booked end time." },
     { title: "Smoking", details: "Only permitted outside fire door. Butts must be disposed of correctly." },
     // Add other key policies derived from contract
   ],

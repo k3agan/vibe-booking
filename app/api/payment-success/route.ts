@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendBookingConfirmation, sendDamageDepositAuthNotification } from '../../lib/email';
 import { createBooking, logEmailSent, updateBookingPaymentMethod, updateDamageDepositAuthorization } from '../../../lib/database';
 import Stripe from 'stripe';
-import { fromZonedTime, toZonedTime, format } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { getStripeApiKey } from '@/lib/api-key-rotation';
 import { sendConversionToGoogleAds, calculateDaysUntilEvent } from '../../../lib/enhanced-conversions';
-import { calculateBookingPrice, calculateEventTimes, createCalendarEventForBooking } from '../../../lib/booking';
+import {
+  calculateBookingPriceWithSurcharges,
+  calculateEventTimes,
+  validateBookingTimes
+} from '../../../lib/booking';
+import { createCalendarEventForBooking } from '../../../lib/booking-server';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -23,11 +28,20 @@ export async function POST(request: NextRequest) {
     // Generate a booking reference number
     const bookingRef = `CHH-${Date.now()}`;
 
+    const timeValidation = validateBookingTimes(bookingData);
+    if (!timeValidation.valid) {
+      return NextResponse.json(
+        { error: timeValidation.error || 'Invalid booking time selection.' },
+        { status: 400 }
+      );
+    }
+
     // Calculate pricing
-    const calculatedPrice = calculateBookingPrice(bookingData);
+    const pricing = calculateBookingPriceWithSurcharges(bookingData);
+    const calculatedPrice = pricing.totalPrice;
 
     // Calculate event times
-    const { dateOnly, startDateTime, endDateTime } = calculateEventTimes(bookingData);
+    const { dateOnly, startDateTime, endDateTime, startTime, endTime } = calculateEventTimes(bookingData);
 
     console.log('Date calculation:', {
       selectedDate: bookingData.selectedDate,
@@ -54,13 +68,17 @@ export async function POST(request: NextRequest) {
         guestCount: parseInt(bookingData.guestCount),
         specialRequirements: bookingData.specialRequirements,
         selectedDate: dateOnly,
-        startTime: bookingData.startTime,
-        endTime: format(toZonedTime(endDateTime, 'America/Vancouver'), 'HH:mm', { timeZone: 'America/Vancouver' }),
+        startTime,
+        endTime,
         bookingType: bookingData.bookingType,
         duration: bookingData.duration,
         calculatedPrice,
         paymentIntentId,
-        calendarEventId
+        calendarEventId,
+        earlyAccessOption: bookingData.earlyAccessOption ?? 'none',
+        lateAccessOption: bookingData.lateAccessOption ?? 'none',
+        surchargeTotal: pricing.surchargeTotal,
+        pricingBreakdown: pricing.items
       });
       console.log('Booking saved to database:', savedBooking.id);
 
@@ -197,6 +215,8 @@ export async function POST(request: NextRequest) {
         calculatedPrice,
         startDateTime: startDateTime.toISOString(),
         endDateTime: endDateTime.toISOString(),
+        pricingBreakdown: pricing.items,
+        surchargeTotal: pricing.surchargeTotal,
       });
       
       if (emailResult.success) {

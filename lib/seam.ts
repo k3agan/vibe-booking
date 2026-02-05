@@ -67,20 +67,21 @@ export async function createAccessCode(bookingData: {
     const startTimeStr = `${bookingData.selectedDate} ${normalizedStartTime}:00`;
     const startDateTime = fromZonedTime(startTimeStr, vancouverTimezone);
     
-    // Handle end time - if it's "00:00", it means midnight (end of day), so add 1 day
+    // Handle end time - if it is before or equal to start time, it means the booking crosses midnight
     // Note: Database may return times in HH:mm:ss format, so we normalize to HH:mm first
     const normalizedEndTime = normalizeTimeToHHMM(bookingData.endTime);
+    const startMinutes = parseInt(normalizedStartTime.split(':')[0]) * 60 + parseInt(normalizedStartTime.split(':')[1]);
+    const endMinutes = parseInt(normalizedEndTime.split(':')[0]) * 60 + parseInt(normalizedEndTime.split(':')[1]);
     let endDateTime: Date;
-    if (normalizedEndTime === '00:00') {
-      // End time is midnight, so it's the next day
-      // Parse the date and add 1 day properly
+    if (endMinutes <= startMinutes) {
+      // End time is on the next day
       const selectedDateParts = bookingData.selectedDate.split('-');
       const year = parseInt(selectedDateParts[0]);
       const month = parseInt(selectedDateParts[1]) - 1; // Month is 0-indexed
       const day = parseInt(selectedDateParts[2]);
       const nextDay = new Date(Date.UTC(year, month, day + 1));
       const nextDayStr = nextDay.toISOString().split('T')[0];
-      const endTimeStr = `${nextDayStr} 00:00:00`;
+      const endTimeStr = `${nextDayStr} ${normalizedEndTime}:00`;
       endDateTime = fromZonedTime(endTimeStr, vancouverTimezone);
     } else {
       const endTimeStr = `${bookingData.selectedDate} ${normalizedEndTime}:00`;

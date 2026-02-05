@@ -38,7 +38,7 @@ Received: ________________________
 
 FULL BALANCE OF RENTAL AND DAMAGE DEPOSIT to be paid in full 31 days prior to event or function. Notice of cancellation must be received 21 days in advance of event or function to receive refund or deposit. The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
 
-ALL GUESTS MUST VACATE THE PREMISES AND ALL MUSIC AND/OR BAR SERVICE must cease at 11:00 p.m.  Please be courteous to our neighbours and be aware of Burnaby Bylaws regarding decibels of music allowed. The Hall shall be cleaned and vacated not later than 12 midnight.
+STANDARD BOOKINGS END AT 10:00 p.m. Late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of Burnaby Bylaws regarding decibels of music allowed. The Hall shall be cleaned and vacated by your booked end time.
 
 NO CONFETTI, RICE, GLITTER, BEADS OR OTHER SIMILAR ITEMS can be brought into the facility. If ANY OF THESE ITEMS are found on the floors after the function the renter agrees to pay expenses incurred by the Association for such extra clean-up and the same be deducted from damage deposit. If the damage deposit is insufficient, the Renter agrees to pay to the Association such extra expense over the amount of the damage deposit.
 

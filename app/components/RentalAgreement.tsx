@@ -14,6 +14,7 @@ import {
   Paper,
   Grid
 } from '@mui/material';
+import { getBookingWindowTimeStrings } from '../../lib/booking';
 
 interface RentalAgreementProps {
   open: boolean;
@@ -24,25 +25,40 @@ interface RentalAgreementProps {
 }
 
 export default function RentalAgreement({ open, onClose, onAccept, formData, calculatedPrice }: RentalAgreementProps) {
-  // Calculate end time for display
-  const getEndTime = () => {
-    if (formData.bookingType === 'fullday') {
-      return '11:00 PM';
-    }
-    if (formData.startTime && formData.duration) {
-      const startHour = parseInt(formData.startTime.split(':')[0]);
-      const startMinute = parseInt(formData.startTime.split(':')[1]);
-      const endHour = startHour + formData.duration;
-      const endMinute = startMinute;
-      const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
-      return new Date(2000, 0, 1, endHour, endMinute).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-    }
-    return 'TBD';
+  const formatTimeLabel = (timeString: string) => {
+    const [hour, minute] = timeString.split(':').map(Number);
+    return new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
+
+  const getTimeWindow = () => {
+    if (!formData.selectedDate) {
+      return { startLabel: 'TBD', endLabel: 'TBD' };
+    }
+
+    if (formData.bookingType === 'hourly' && !formData.startTime) {
+      return { startLabel: 'TBD', endLabel: 'TBD' };
+    }
+
+    const windowTimes = getBookingWindowTimeStrings({
+      selectedDate: formData.selectedDate,
+      startTime: formData.startTime,
+      bookingType: formData.bookingType,
+      duration: formData.duration,
+      earlyAccessOption: formData.earlyAccessOption,
+      lateAccessOption: formData.lateAccessOption,
+    });
+    const endSuffix = windowTimes.endDayOffset > 0 ? ' (next day)' : '';
+    return {
+      startLabel: formatTimeLabel(windowTimes.startTime),
+      endLabel: `${formatTimeLabel(windowTimes.endTime)}${endSuffix}`,
+    };
+  };
+
+  const timeWindow = getTimeWindow();
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -87,10 +103,10 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
                 <Typography variant="body2"><strong>Event Type:</strong> {formData.eventType || 'Event'}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>Start Time:</strong> {formData.startTime ? new Date(2000, 0, 1, parseInt(formData.startTime.split(':')[0]), parseInt(formData.startTime.split(':')[1])).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '8:00 AM'}</Typography>
+                <Typography variant="body2"><strong>Start Time:</strong> {timeWindow.startLabel}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Typography variant="body2"><strong>End Time:</strong> {getEndTime()}</Typography>
+                <Typography variant="body2"><strong>End Time:</strong> {timeWindow.endLabel}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Guest Count:</strong> {formData.guestCount || 'TBD'}</Typography>
@@ -126,9 +142,9 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
-            ALL GUESTS MUST VACATE THE PREMISES AND ALL MUSIC AND/OR BAR SERVICE must cease at 11:00 p.m. 
-            Please be courteous to our neighbours and be aware of Burnaby Bylaws regarding decibels of music allowed. 
-            The Hall shall be cleaned and vacated not later than 12 midnight.
+            STANDARD BOOKINGS END AT 10:00 P.M. Late access is available for a fee until 12:00 a.m., and after-midnight
+            access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of
+            Burnaby Bylaws regarding decibels of music allowed. The Hall shall be cleaned and vacated by your booked end time.
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>

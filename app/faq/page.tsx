@@ -26,7 +26,7 @@ const faqs = [
   {
     id: 'noise-restrictions',
     question: 'Are there noise restrictions?',
-    answer: 'Yes, all music and bar service must cease at 11:00 PM. We ask that you be courteous to our neighbors and respect Burnaby noise bylaws. The hall must be cleaned and vacated by 12:00 AM.',
+    answer: 'Yes, all music and bar service must cease at your booked end time. Standard bookings end at 10:00 PM, late access is available for a fee until 12:00 AM, and after-midnight access can extend until 2:00 AM when arranged in advance. We ask that you be courteous to our neighbors and respect Burnaby noise bylaws.',
   },
   {
     id: 'decorations-policy',

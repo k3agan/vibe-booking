@@ -15,6 +15,16 @@ export interface BookingData {
   startTime: string;
   bookingType: 'hourly' | 'fullday';
   duration: number;
+  earlyAccessOption?: 'none' | 'standard' | 'extra';
+  lateAccessOption?: 'none' | 'standard' | 'after_midnight';
+}
+
+export interface PricingBreakdownItem {
+  id: string;
+  label: string;
+  hours: number;
+  percent: number;
+  amount: number;
 }
 
 export interface BookingConfirmation {
@@ -24,6 +34,8 @@ export interface BookingConfirmation {
   startDateTime: string;
   endDateTime: string;
   comped?: boolean;
+  pricingBreakdown?: PricingBreakdownItem[];
+  surchargeTotal?: number;
 }
 
 export async function sendBookingConfirmation(confirmation: BookingConfirmation) {
@@ -113,6 +125,24 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
   const vancouverTimezone = 'America/Vancouver';
   const isComped = confirmation.comped || calculatedPrice === 0;
+  const feeRows = confirmation.pricingBreakdown?.length
+    ? confirmation.pricingBreakdown
+        .map((item) => `
+          <div class="detail-row">
+            <span class="detail-label">${item.label} (${item.hours.toFixed(1)} hrs)</span>
+            <span>$${item.amount.toFixed(2)} CAD</span>
+          </div>
+        `)
+        .join('')
+    : '';
+  const feeTotalRow = confirmation.surchargeTotal && confirmation.surchargeTotal > 0
+    ? `
+        <div class="detail-row">
+          <span class="detail-label">Fee Total:</span>
+          <span>$${confirmation.surchargeTotal.toFixed(2)} CAD</span>
+        </div>
+      `
+    : '';
   
   // Convert UTC times to Vancouver timezone for display
   const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
@@ -173,6 +203,8 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
             <span class="detail-label">Duration:</span>
             <span>${bookingData.bookingType === 'hourly' ? `${bookingData.duration} hours` : 'Full day'}</span>
           </div>
+          ${feeRows}
+          ${feeTotalRow}
           <div class="detail-row">
             <span class="detail-label">Guest Count:</span>
             <span>${bookingData.guestCount} people</span>
@@ -227,6 +259,24 @@ function generateManagementEmailHTML(confirmation: BookingConfirmation): string 
   const { bookingRef, bookingData, calculatedPrice, startDateTime, endDateTime } = confirmation;
   const vancouverTimezone = 'America/Vancouver';
   const isComped = confirmation.comped || calculatedPrice === 0;
+  const feeRows = confirmation.pricingBreakdown?.length
+    ? confirmation.pricingBreakdown
+        .map((item) => `
+          <div class="detail-row">
+            <span class="detail-label">${item.label} (${item.hours.toFixed(1)} hrs)</span>
+            <span>$${item.amount.toFixed(2)} CAD</span>
+          </div>
+        `)
+        .join('')
+    : '';
+  const feeTotalRow = confirmation.surchargeTotal && confirmation.surchargeTotal > 0
+    ? `
+        <div class="detail-row">
+          <span class="detail-label">Fee Total:</span>
+          <span>$${confirmation.surchargeTotal.toFixed(2)} CAD</span>
+        </div>
+      `
+    : '';
   
   // Convert UTC times to Vancouver timezone for display
   const startDateVancouver = toZonedTime(new Date(startDateTime), vancouverTimezone);
@@ -281,6 +331,8 @@ function generateManagementEmailHTML(confirmation: BookingConfirmation): string 
             <span class="detail-label">Duration:</span>
             <span>${bookingData.bookingType === 'hourly' ? `${bookingData.duration} hours` : 'Full day'}</span>
           </div>
+          ${feeRows}
+          ${feeTotalRow}
           <div class="detail-row">
             <span class="detail-label">Guest Count:</span>
             <span>${bookingData.guestCount} people</span>

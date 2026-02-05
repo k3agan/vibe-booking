@@ -32,7 +32,11 @@ CREATE TABLE bookings (
   discount_code VARCHAR(100),
   discount_type VARCHAR(20) CHECK (discount_type IN ('percent', 'fixed', 'full')),
   discount_value DECIMAL(10,2),
-  comped BOOLEAN DEFAULT FALSE
+  comped BOOLEAN DEFAULT FALSE,
+  early_access_option VARCHAR(20) CHECK (early_access_option IN ('none', 'standard', 'extra')),
+  late_access_option VARCHAR(20) CHECK (late_access_option IN ('none', 'standard', 'after_midnight')),
+  surcharge_total DECIMAL(10,2),
+  pricing_breakdown JSONB
 );
 
 -- Email logs table
