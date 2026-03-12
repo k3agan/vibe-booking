@@ -1,7 +1,34 @@
+import fs from 'fs';
+import path from 'path';
 import { Resend } from 'resend';
 import { format, toZonedTime } from 'date-fns-tz';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const lockPhotoPath = path.join(
+  process.cwd(),
+  'public',
+  'images',
+  'lock-photo-with-checkmark-icon.jpg',
+);
+let lockPhotoDataUrl: string | null = null;
+
+function getLockPhotoDataUrl(): string | null {
+  if (lockPhotoDataUrl !== null) {
+    return lockPhotoDataUrl || null;
+  }
+
+  try {
+    const file = fs.readFileSync(lockPhotoPath);
+    const base64 = file.toString('base64');
+    lockPhotoDataUrl = `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.warn('Unable to load lock photo for email:', error);
+    lockPhotoDataUrl = '';
+  }
+
+  return lockPhotoDataUrl || null;
+}
 
 export interface BookingData {
   name: string;
@@ -373,6 +400,8 @@ function generateReminderEmailHTML(bookingData: {
   accessCode?: string;
 }): string {
   const vancouverTimezone = 'America/Vancouver';
+  const lockPhotoSrc =
+    getLockPhotoDataUrl() || 'https://caphillhall.ca/images/lock-photo-with-checkmark-icon.jpg';
   
   // Create dates in Vancouver timezone for proper display
   const eventDate = format(new Date(bookingData.selectedDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
@@ -457,7 +486,8 @@ function generateReminderEmailHTML(bookingData: {
             ${bookingData.accessCode}
           </div>
           <p style="margin: 10px 0; color: #2e7d32;"><strong>Valid:</strong> 15 minutes before your event until 15 minutes after</p>
-          <p style="margin: 5px 0; color: #2e7d32; font-size: 14px;">Use this code on the smart locks at the EAST entrance and kitchen</p>
+          <p style="margin: 5px 0; color: #2e7d32; font-size: 14px;">Use this code on the smart locks at the EAST entrance and kitchen. Press the checkmark button first, then enter the code.</p>
+          <img src="${lockPhotoSrc}" alt="Keypad checkmark button location" style="max-width: 33%; height: auto; margin-top: 12px; border-radius: 6px; border: 1px solid #c8e6c9;" />
         </div>
         ` : `
         <div class="access-fallback" style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
