@@ -18,7 +18,13 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  TextField
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  InputAdornment,
 } from '@mui/material';
 import { 
   Email as EmailIcon, 
@@ -54,6 +60,14 @@ interface AdminBooking {
   created_at: string;
 }
 
+interface CancelDialogState {
+  open: boolean;
+  booking: AdminBooking | null;
+  refundAmount: string;
+  cancellationReason: string;
+  cancelling: boolean;
+}
+
 export default function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [adminBookings, setAdminBookings] = useState<AdminBooking[]>([]);
@@ -64,6 +78,13 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [cancelDialog, setCancelDialog] = useState<CancelDialogState>({
+    open: false,
+    booking: null,
+    refundAmount: '',
+    cancellationReason: '',
+    cancelling: false,
+  });
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -164,24 +185,54 @@ export default function AdminPage() {
     }
   };
 
-  const cancelBooking = async (bookingId: string) => {
+  const openCancelDialog = (booking: AdminBooking) => {
+    setCancelDialog({
+      open: true,
+      booking,
+      refundAmount: booking.calculated_price.toFixed(2),
+      cancellationReason: '',
+      cancelling: false,
+    });
+  };
+
+  const closeCancelDialog = () => {
+    if (cancelDialog.cancelling) return; // Don't close while in-flight
+    setCancelDialog(prev => ({ ...prev, open: false, booking: null }));
+  };
+
+  const confirmCancelBooking = async () => {
+    if (!cancelDialog.booking) return;
+
+    setCancelDialog(prev => ({ ...prev, cancelling: true }));
+
     try {
+      const refundAmount = parseFloat(cancelDialog.refundAmount);
       const response = await fetch('/api/admin/cancel-booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId })
+        body: JSON.stringify({
+          bookingId: cancelDialog.booking.id,
+          refundAmount: isNaN(refundAmount) ? null : refundAmount,
+          cancellationReason: cancelDialog.cancellationReason || null,
+        }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        setMessage({ type: 'success', text: 'Booking cancelled successfully' });
-        fetchAdminBookings(); // Refresh the list
+        setMessage({
+          type: 'success',
+          text: data.message || 'Booking cancelled successfully',
+        });
+        setCancelDialog({ open: false, booking: null, refundAmount: '', cancellationReason: '', cancelling: false });
+        fetchAdminBookings();
       } else {
         setMessage({ type: 'error', text: data.message || 'Failed to cancel booking' });
+        setCancelDialog(prev => ({ ...prev, cancelling: false }));
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to cancel booking' });
+      setCancelDialog(prev => ({ ...prev, cancelling: false }));
     }
   };
 
@@ -510,7 +561,7 @@ export default function AdminPage() {
                               variant="outlined"
                               size="small"
                               color="error"
-                              onClick={() => cancelBooking(booking.id)}
+                              onClick={() => openCancelDialog(booking)}
                             >
                               Cancel
                             </Button>
@@ -525,6 +576,74 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Cancel Booking Confirmation Dialog */}
+      <Dialog open={cancelDialog.open} onClose={closeCancelDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ color: 'error.main' }}>⚠️ Cancel Booking</DialogTitle>
+        <DialogContent>
+          {cancelDialog.booking && (
+            <>
+              <DialogContentText sx={{ mb: 2 }}>
+                You are about to cancel booking <strong>{cancelDialog.booking.booking_ref}</strong> for{' '}
+                <strong>{cancelDialog.booking.customer_name}</strong> ({cancelDialog.booking.event_type} on{' '}
+                {new Date(cancelDialog.booking.selected_date).toLocaleDateString()}).
+              </DialogContentText>
+
+              <TextField
+                label="Refund Amount (CAD)"
+                type="number"
+                fullWidth
+                value={cancelDialog.refundAmount}
+                onChange={e => setCancelDialog(prev => ({ ...prev, refundAmount: e.target.value }))}
+                inputProps={{ min: 0, max: cancelDialog.booking.calculated_price, step: '0.01' }}
+                InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                helperText={`Max refundable: $${cancelDialog.booking.calculated_price.toFixed(2)} CAD. Set to 0 for no refund.`}
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                label="Cancellation Reason (optional)"
+                fullWidth
+                multiline
+                rows={2}
+                value={cancelDialog.cancellationReason}
+                onChange={e => setCancelDialog(prev => ({ ...prev, cancellationReason: e.target.value }))}
+                placeholder="e.g. Customer requested cancellation"
+                sx={{ mb: 1 }}
+              />
+
+              {parseFloat(cancelDialog.refundAmount) > 0 && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  This will issue a Stripe refund of <strong>${parseFloat(cancelDialog.refundAmount).toFixed(2)} CAD</strong> to the customer's original payment method.
+                  {cancelDialog.booking.calculated_price > 0 && parseFloat(cancelDialog.refundAmount) < cancelDialog.booking.calculated_price && (
+                    <> This is a <strong>partial refund</strong> (full amount: ${cancelDialog.booking.calculated_price.toFixed(2)}).</>
+                  )}
+                </Alert>
+              )}
+
+              {parseFloat(cancelDialog.refundAmount) === 0 && (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  No refund will be issued. The booking will be marked as cancelled.
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={closeCancelDialog} disabled={cancelDialog.cancelling}>
+            Keep Booking
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={confirmCancelBooking}
+            disabled={cancelDialog.cancelling}
+            startIcon={cancelDialog.cancelling ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {cancelDialog.cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
         <Typography variant="h6" gutterBottom>

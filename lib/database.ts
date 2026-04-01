@@ -189,6 +189,7 @@ export async function getCompletedBookings(days: number): Promise<Booking[]> {
     .select('*')
     .gte('selected_date', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
     .lte('selected_date', new Date().toISOString().split('T')[0])
+    .neq('status', 'cancelled')
     .order('selected_date', { ascending: false });
 
   if (error) {
@@ -277,6 +278,59 @@ export async function updateDamageDepositAuthorization(
   if (error) {
     console.error('Error updating damage deposit authorization:', error)
     throw new Error(`Failed to update damage deposit authorization: ${error.message}`)
+  }
+
+  return data as Booking
+}
+
+export async function updateBookingCancellation(
+  bookingId: string,
+  opts: {
+    stripeRefundId?: string | null
+    refundAmount?: number | null
+    cancellationReason?: string | null
+    damageDepositReleased?: boolean
+  } = {}
+) {
+  const updatePayload: Record<string, unknown> = {
+    status: 'cancelled',
+    payment_status: 'cancelled',
+    updated_at: new Date().toISOString(),
+    cancelled_at: new Date().toISOString(),
+  }
+
+  if (opts.stripeRefundId !== undefined) updatePayload.stripe_refund_id = opts.stripeRefundId
+  if (opts.refundAmount !== undefined) updatePayload.refund_amount = opts.refundAmount
+  if (opts.cancellationReason !== undefined) updatePayload.cancellation_reason = opts.cancellationReason
+  if (opts.damageDepositReleased) {
+    updatePayload.damage_deposit_authorization_status = 'released'
+  }
+
+  const { data, error } = await supabase
+    .from('bookings')
+    .update(updatePayload)
+    .eq('id', bookingId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating booking cancellation:', error)
+    throw new Error(`Failed to update booking cancellation: ${error.message}`)
+  }
+
+  return data as Booking
+}
+
+export async function getBookingById(bookingId: string) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('id', bookingId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching booking by id:', error)
+    return null
   }
 
   return data as Booking

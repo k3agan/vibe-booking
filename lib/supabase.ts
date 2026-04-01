@@ -43,6 +43,10 @@ export interface Booking {
   late_access_option?: 'none' | 'standard' | 'after_midnight' | null
   surcharge_total?: number | null
   pricing_breakdown?: unknown
+  stripe_refund_id?: string | null
+  refund_amount?: number | null
+  cancellation_reason?: string | null
+  cancelled_at?: string | null
 }
 
 export interface EmailLog {

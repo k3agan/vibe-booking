@@ -1238,3 +1238,121 @@ function generateFeedbackThankYouEmailHTML(customerName: string, averageRating: 
     </html>
   `;
 }
+
+// ─── Cancellation Email ──────────────────────────────────────────────────────
+
+export async function sendCancellationEmail(data: {
+  customerName: string;
+  customerEmail: string;
+  bookingRef: string;
+  eventDate: string;
+  eventType: string;
+  refundAmount: number | null;
+  cancellationReason?: string | null;
+}) {
+  try {
+    const adminEmail = 'info@caphillhall.ca';
+
+    await resend.emails.send({
+      from: 'Capitol Hill Hall <info@caphillhall.ca>',
+      to: [data.customerEmail, adminEmail],
+      subject: `Booking Cancelled – ${data.bookingRef}`,
+      html: generateCancellationEmailHTML(data),
+    });
+
+    console.log('Cancellation email sent successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending cancellation email:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+function generateCancellationEmailHTML(data: {
+  customerName: string;
+  customerEmail: string;
+  bookingRef: string;
+  eventDate: string;
+  eventType: string;
+  refundAmount: number | null;
+  cancellationReason?: string | null;
+}): string {
+  const vancouverTimezone = 'America/Vancouver';
+  const eventDateFormatted = format(new Date(data.eventDate), 'EEEE, MMMM d, yyyy', { timeZone: vancouverTimezone });
+
+  const refundLine = data.refundAmount != null && data.refundAmount > 0
+    ? `<div class="refund-box">
+        <p style="margin: 0; font-size: 16px;">💳 A refund of <strong>$${data.refundAmount.toFixed(2)} CAD</strong> has been issued to your original payment method.</p>
+        <p style="margin: 8px 0 0; font-size: 13px; color: #555;">Please allow 5–10 business days for the refund to appear depending on your bank.</p>
+       </div>`
+    : `<div class="refund-box" style="border-left-color: #888; background-color: #f5f5f5;">
+        <p style="margin: 0; font-size: 16px; color: #555;">No refund has been issued for this booking.</p>
+       </div>`;
+
+  const reasonLine = data.cancellationReason
+    ? `<div class="info-box"><p style="margin: 0;"><strong>Reason:</strong> ${data.cancellationReason.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c] ?? c))}</p></div>`
+    : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Booking Cancelled – Capitol Hill Hall</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #c62828; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #c62828; }
+        .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-label { font-weight: bold; }
+        .refund-box { background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <img src="https://caphillhall.ca/logo.png" alt="Capitol Hill Hall Logo" style="max-width: 150px; height: auto; margin-bottom: 15px;" />
+        <h1>❌ Booking Cancelled</h1>
+        <p>We're sorry to see you go</p>
+      </div>
+
+      <div class="content">
+        <h2>Hello ${data.customerName}!</h2>
+        <p>Your booking at Capitol Hill Hall has been cancelled. Here are the details:</p>
+
+        <div class="info-box">
+          <div class="detail-row">
+            <span class="detail-label">Booking Reference</span>
+            <span>${data.bookingRef}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Event Type</span>
+            <span>${data.eventType}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Event Date</span>
+            <span>${eventDateFormatted}</span>
+          </div>
+        </div>
+
+        ${reasonLine}
+        ${refundLine}
+
+        <p>If you have any questions, please contact us at <strong>info@caphillhall.ca</strong> or <strong>(604) 500-9505</strong>.</p>
+
+        <p>We hope to welcome you back to Capitol Hill Hall in the future.</p>
+
+        <p>Best regards,<br><strong>The Capitol Hill Hall Team</strong></p>
+
+        <div class="footer">
+          <p><strong>Capitol Hill Hall</strong><br>
+          📧 info@caphillhall.ca | 📞 (604) 500-9505<br>
+          🌐 <a href="https://caphillhall.ca">caphillhall.ca</a></p>
+          <p><em>Your rental helps support local charities in our community!</em></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
