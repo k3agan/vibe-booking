@@ -53,7 +53,7 @@ export const hallInfo: HallInfo = {
     { primary: "Bathrooms", secondary: "5 bathrooms available on premises" },
     
     // Amenities and facilities
-    { primary: "Furniture", secondary: "28 long tables (72\" x 30\"), 19 round tables (60\"), and 150 folding chairs included with rental fee. Renter responsible for setup, takedown, cleaning, and stacking." },
+    { primary: "Furniture", secondary: "28 long tables (72\" x 30\"), 19 round tables (60\"), and 150 folding chairs included with rental fee. Renter responsible for setup, takedown, and stacking (wipe down only if visibly soiled)." },
     { primary: "Kitchen Facilities", secondary: "Oven, Fridge, Sink, Dishwasher, and other standard amenities. Re-heating only - no food preparation allowed" },
     { primary: "Free WiFi", secondary: "High-speed gigabit fiber WiFi available on site" },
     { primary: "Accessibility", secondary: "Ramps and accessible facilities available" },
@@ -63,7 +63,7 @@ export const hallInfo: HallInfo = {
     { title: "Alcohol", details: "Not allowed unless the Renter has obtained and presented necessary licenses (Liquor/cannabis, Serving it Right, Food Safe) and additional special event liability and liquor liability insurance ($200,000)." },
     { title: "Insurance", details: "Renter must obtain insurance covering all liabilities. Proof required. Renter indemnifies the Association against all claims." },
     { title: "Music/Noise", details: "All music must cease at your booked end time. Standard bookings end at 10:00 p.m.; late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Be aware of Burnaby noise bylaws." },
-    { title: "Cleanup", details: "Renter responsible for cleaning the Hall after function as per the Hall Closing Checklist (sweeping, mopping, garbage/recycling disposal, etc.). Hall must be cleaned and vacated by your booked end time." },
+    { title: "Cleanup", details: "Renter responsible for cleaning up after themselves per the Hall Closing Checklist: spot clean spills and large messes, remove confetti/tape/decorations and anything brought in, take out garbage/recycling, and leave the Hall tidy and secure. Cleaning contractors visit twice a week to handle regular sweeping, mopping, and deep cleaning — the renter cleaning standard is not the same as the contractor cleaning standard. The Hall must be tidied and vacated by your booked end time." },
     { title: "Smoking", details: "Only permitted outside fire door. Butts must be disposed of correctly." },
     // Add other key policies derived from contract
   ],

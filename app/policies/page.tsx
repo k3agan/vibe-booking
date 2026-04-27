@@ -26,7 +26,7 @@ export default function PoliciesPage() {
           <li><strong>Noise:</strong> Music must cease at your booked end time; respect Burnaby noise bylaws</li>
            <li><strong>Capacity:</strong> Maximum 140 persons; clear access to fire exits required</li>
            <li><strong>Insurance:</strong> Renter must provide liability insurance proof at time of deposit</li>
-           <li><strong>Setup/Cleanup:</strong> Renter responsible for all setup, takedown, and cleaning per checklist</li>
+           <li><strong>Setup/Cleanup:</strong> Renter responsible for setup, takedown, and cleaning up after themselves per the Hall Closing Checklist (spot clean spills, remove confetti/tape/decorations, take out garbage). Contractors handle regular deep cleaning twice a week — no deep-clean required from renters.</li>
            <li><strong>Key Access:</strong> Renter unlocks lockbox for key at start, returns to office before leaving</li>
            <li><strong>Age Requirement:</strong> Responsible adult (19+) must remain on premises at all times</li>
         </Typography>

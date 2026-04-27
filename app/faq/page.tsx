@@ -41,7 +41,7 @@ const faqs = [
   {
     id: 'setup-cleanup-time',
     question: 'Is setup and cleanup time included in the rental period?',
-    answer: 'Setup and cleanup time is included in your rental period. Please factor this time into your booking. You\'ll receive a detailed checklist to ensure proper cleanup. A responsible adult (19+) must remain on premises at all times.',
+    answer: 'Setup and cleanup time is included in your rental period — please factor this time into your booking. The good news is that cleanup is light: our cleaning contractors visit the Hall twice a week for regular sweeping, mopping, and deep cleaning, so renters are not expected to deep-clean. You only need to clean up after yourselves — spot clean spills and large messes, remove any confetti/tape/decorations and anything you brought in, take out garbage and recycling, and leave the Hall tidy and secure. You\'ll receive a detailed close-out checklist with your booking. A responsible adult (19+) must remain on premises at all times.',
   },
   {
     id: 'event-insurance',

@@ -518,18 +518,25 @@ function generateReminderEmailHTML(bookingData: {
 
         <div class="important">
           <h3>📋 Setup & Cleanup</h3>
-          <p><strong>Setup:</strong> Chairs and tables are provided. You are responsible for setup, takedown, cleaning, and stacking.</p>
+          <p><strong>Setup:</strong> Chairs and tables are provided. You are responsible for setup, takedown, and stacking.</p>
           <p><strong>Kitchen:</strong> Available for re-heating only (no food preparation allowed).</p>
-          <p><strong>Cleanup:</strong> Hall must be cleaned and vacated by 12 midnight. Please follow the Hall Closing Checklist below.</p>
+          <p><strong>Cleanup:</strong> Hall must be tidied and vacated by your booked end time. Just clean up after yourselves — see the renter close-out checklist below.</p>
         </div>
 
         <div class="checklist">
-          <h3>🧹 Hall Closing Checklist</h3>
-          <p><strong>Please ensure all items are completed before leaving:</strong></p>
-          
+          <h3>🧹 Renter Close-Out Checklist</h3>
+          <p><strong>Good news:</strong> Our cleaning contractors visit the Hall <strong>twice a week</strong> for regular sweeping, mopping, and deep cleaning. You do <strong>not</strong> need to deep-clean — please just clean up after yourselves, remove anything you brought in, and leave the Hall tidy and secure before you leave.</p>
+
+          <h4>General</h4>
+          <ul>
+            <li>Remove all decorations and anything you brought in (signs, balloons, supplies, leftover food, etc.)</li>
+            <li>Pick up and remove any confetti, tape, glitter, beads, rice, or similar items (a reminder: these are not permitted in the Hall)</li>
+            <li>Spot clean any spills, food, drink, or other large messes you or your guests created</li>
+          </ul>
+
           <h4>Entryway</h4>
           <ul>
-            <li>Floors and carpets swept clean</li>
+            <li>Pick up any obvious litter or items left behind</li>
             <li>Door wedge left in entryway</li>
             <li>Double doors to Main Hall closed</li>
             <li>Entry doors closed and locked</li>
@@ -538,13 +545,14 @@ function generateReminderEmailHTML(bookingData: {
 
           <h4>Main Hall</h4>
           <ul>
-            <li>All floors swept and wet mopped</li>
+            <li>Spot clean any spills or food/drink messes (a damp cloth is fine — no need to mop the entire floor)</li>
+            <li>Wipe down tables and chairs only if visibly soiled</li>
+            <li>Chairs nested (50 per trolley)</li>
+            <li>Rectangular tables stored on end in Northwest corner cupboard</li>
+            <li>Round tables stored on edge in dollies (9-10 per dolly) in North wall cupboard</li>
+            <li>Ladder returned to cupboard with round tables</li>
             <li>Fire door closed and locked</li>
             <li>Windows closed and locked, blinds closed</li>
-            <li>Chairs washed and nested (50 per trolley)</li>
-            <li>Rectangular tables washed and stored on end in Northwest corner cupboard</li>
-            <li>Round tables washed and stored on edge in dollies (9-10 per dolly) in North wall cupboard</li>
-            <li>Ladder returned to cupboard with round tables</li>
             <li>Ceiling fans turned off (switch on South wall doorway)</li>
             <li>Furnace control set to max 25°C during cold months, 15°C when leaving</li>
             <li>All lights switched off</li>
@@ -552,8 +560,8 @@ function generateReminderEmailHTML(bookingData: {
 
           <h4>Kitchen</h4>
           <ul>
-            <li>Counters and sink left clean</li>
-            <li>Fridge, stovetop and oven left clean</li>
+            <li>Spot clean any spills (no need to wet mop or sweep the entire floor)</li>
+            <li>Wipe down counters, sink, fridge, stovetop, and oven if you used them — leave them as you found them</li>
             <li>Range knobs turned to off position</li>
             <li>Exhaust hood fan and light turned off</li>
             <li>Fridge doors closed</li>
@@ -566,11 +574,13 @@ function generateReminderEmailHTML(bookingData: {
 
           <h4>Washrooms</h4>
           <ul>
-            <li>Floors wet mopped clean</li>
+            <li>Spot clean any obvious spills or messes (contractors handle regular floor cleaning)</li>
             <li>Trash bins emptied</li>
             <li>Paper items in yellow recycling bin outside fire door</li>
             <li>Garbage (diapers, sanitary products) in green waste bin in parking area</li>
           </ul>
+
+          <p style="font-size: 13px; color: #555; margin-top: 12px;"><em>The renter cleaning standard is not the same as the contractor cleaning standard — we just ask that you leave things tidy for the next user.</em></p>
         </div>
 
         <div style="text-align: center;">
@@ -846,10 +856,12 @@ function generateDamageDepositEmailHTML(data: {
           <h3>🏛️ Hall Care Expectations</h3>
           <p>To ensure your deposit is fully released, please:</p>
           <ul>
-            <li>Complete all cleanup tasks per the Hall Closing Checklist</li>
-            <li>Leave the hall in the same condition as you found it</li>
+            <li>Clean up after yourselves per the renter close-out checklist (no deep-cleaning required — our contractors handle that twice a week)</li>
+            <li>Remove any confetti, tape, decorations, and anything else you brought in</li>
+            <li>Spot clean any spills or large messes</li>
+            <li>Leave the hall tidy and secure</li>
             <li>Report any accidental damage immediately</li>
-            <li>Ensure all items are removed by midnight</li>
+            <li>Ensure all items are removed by your booked end time</li>
           </ul>
           <p style="font-size: 14px; color: #666; margin-top: 10px;">
             <em>Most events have no issues and the hold is released automatically. We're here to help if you have any questions!</em>

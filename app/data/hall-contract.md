@@ -38,7 +38,7 @@ Received: ________________________
 
 FULL BALANCE OF RENTAL AND DAMAGE DEPOSIT to be paid in full 31 days prior to event or function. Notice of cancellation must be received 21 days in advance of event or function to receive refund or deposit. The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
 
-STANDARD BOOKINGS END AT 10:00 p.m. Late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of Burnaby Bylaws regarding decibels of music allowed. The Hall shall be cleaned and vacated by your booked end time.
+STANDARD BOOKINGS END AT 10:00 p.m. Late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of Burnaby Bylaws regarding decibels of music allowed. The Hall shall be tidied and vacated by your booked end time.
 
 NO CONFETTI, RICE, GLITTER, BEADS OR OTHER SIMILAR ITEMS can be brought into the facility. If ANY OF THESE ITEMS are found on the floors after the function the renter agrees to pay expenses incurred by the Association for such extra clean-up and the same be deducted from damage deposit. If the damage deposit is insufficient, the Renter agrees to pay to the Association such extra expense over the amount of the damage deposit.
 
@@ -58,7 +58,7 @@ The Renter shall not install or permit the installations of any wiring, electric
 
 Chairs and tables are provided. The Renter must set them up and take them down, clean and stack them in the appropriate cupboards in the same fashion as they were found.
 
-The Renter is responsible for the cleaning of the Hall after function which includes everything that is listed on the Hall Closing Checklist. Hall Closing Checklist given: ____________________________,  Received back______________________________
+The Renter is responsible for cleaning up after their function as outlined in the Hall Closing Checklist. The Hall is professionally cleaned by contractors twice per week, so the Renter is not expected to deep-clean the facility — only to clean up after themselves, remove items they brought in, and leave the Hall tidy and secure. The renter cleaning standard is not the same as the contractor cleaning standard. Hall Closing Checklist given: ____________________________,  Received back______________________________
 
 The Renter is responsible for entry of caterers, music, and work crews, on the date and during period specified above.
 
@@ -116,9 +116,19 @@ DATE:  ____________________________
 
 Appendix B-HALL CLOSING CHECKLIST
 
+Note to Renters: The Hall is professionally cleaned by contractors twice per week. You are NOT expected to deep-clean the facility — please just clean up after yourselves, remove anything you brought in, and leave the Hall tidy and secure. The renter cleaning standard is not the same as the contractor cleaning standard.
+
+General
+
+Remove all decorations and anything you brought in (signs, balloons, supplies, leftover food, etc.).
+
+Pick up and remove any confetti, tape, glitter, beads, rice, or similar items from floors, walls, tables, and chairs. (As a reminder, these items are not permitted in the Hall.)
+
+Spot clean any spills, food, drink, or other large messes you or your guests created.
+
 Entryway
 
-Floors and carpets to be swept clean
+Pick up any obvious litter or items left behind.
 
 Door wedge to be left in Entryway.
 
@@ -132,17 +142,19 @@ Entry door key to be left in Hall at the office door., renter exit via Fire Exit
 
 Main Hall
 
-Spillage to be wet mopped during function and all floors to be swept and wet mopped at end of function. 
+Spot clean any spills or food/drink messes (a damp cloth is fine — no need to mop the entire floor).
+
+Wipe down tables and chairs only if they are visibly soiled (food, drink, sticky residue).
 
 Fire door to be closed and locked.
 
 Windows to be closed and locked. Blinds closed and lights turned off.
 
-Chairs to be washed and nested, 50 per trolley.
+Chairs to be nested, 50 per trolley.
 
-Rectangular tables to be washed and stored on end in Northwest corner cupboard with legs facing West wall.
+Rectangular tables to be stored on end in Northwest corner cupboard with legs facing West wall.
 
-Round tables to be washed and stored on edge in dollies (9 or 10 on a dolly) which fit into North wall cupboard
+Round tables to be stored on edge in dollies (9 or 10 on a dolly) which fit into North wall cupboard
 
 Ladder to be returned to cupboard with round tables.
 
@@ -156,11 +168,9 @@ All lights to be switched off.
 
 Kitchen
 
-Keep spillage cleaned up at all times. Spillage to be wet mopped and floor swept clean at end of function.
+Spot clean any spills as they happen and at the end of your function (no need to wet mop or sweep the entire floor).
 
-Counters and sink to be left clean.
-
-Fridge, stovetop and oven to be left clean.
+Wipe down counters, sink, fridge, stovetop, and oven if you used them — leave them as you found them.
 
 Range knobs to be turned to off position.
 
@@ -182,11 +192,9 @@ Garbage to be put into green waste bin in parking area.
 
 
 
-
-
 Washrooms
 
-Washroom floors to be wet mopped clean.
+Spot clean any obvious spills or messes (the contractors handle the regular floor cleaning).
 
 Trash bins to be emptied: Paper items to be put into yellow recycling bin outside of fire door.
 
@@ -204,6 +212,6 @@ Parking area, driveways, stairs, walkways, entry ramp, grass areas and flower be
 
 
 
-Premises to be left clean and tidy, clean up is to be completed and all renters, caterers
+Premises to be left tidy and free of items brought in by the renter — clean-up is to be completed and all renters, caterers
 
-and musicians’ equipment to be removed from the hall within one hour of the function's end.
+and musicians’ equipment to be removed from the hall within one hour of the function's end. Regular sweeping, mopping, and deep cleaning are handled by our cleaning contractors.

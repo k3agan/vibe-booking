@@ -144,7 +144,7 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
             STANDARD BOOKINGS END AT 10:00 P.M. Late access is available for a fee until 12:00 a.m., and after-midnight
             access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of
-            Burnaby Bylaws regarding decibels of music allowed. The Hall shall be cleaned and vacated by your booked end time.
+            Burnaby Bylaws regarding decibels of music allowed. The Hall shall be tidied and vacated by your booked end time.
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
@@ -196,13 +196,13 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
             </ListItem>
             <ListItem>
               <ListItemText 
-                primary="Chairs and tables are provided. The Renter must set them up and take them down, clean and stack them in the appropriate cupboards in the same fashion as they were found."
+                primary="Chairs and tables are provided. The Renter must set them up, take them down, and stack them in the appropriate cupboards in the same fashion as they were found (wiping down only if visibly soiled)."
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
             <ListItem>
               <ListItemText 
-                primary="The Renter is responsible for the cleaning of the Hall after function which includes everything that is listed on the Hall Closing Checklist."
+                primary="The Renter is responsible for cleaning up after their function as outlined in the Hall Closing Checklist (spot clean spills and large messes, remove confetti/tape/decorations and anything brought in, take out garbage/recycling, and leave the Hall tidy and secure). Cleaning contractors visit the Hall twice a week to handle regular sweeping, mopping, and deep cleaning — the renter cleaning standard is not the same as the contractor cleaning standard."
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
