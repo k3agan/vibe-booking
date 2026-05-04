@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Typography, Box, Paper, Button, Link as MuiLink, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
 import GavelIcon from '@mui/icons-material/Gavel'; // Example icon for rules
 import DescriptionIcon from '@mui/icons-material/Description'; // Icon for document
+import Link from 'next/link';
 
 export default function PoliciesPage() {
   return (
@@ -18,16 +19,16 @@ export default function PoliciesPage() {
           Key Rules & Responsibilities Summary
         </Typography>
         <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 3, color: 'text.secondary' }}>
-           <li><strong>Payment:</strong> Full balance and damage deposit due 31 days prior to event</li>
-           <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450)</li>
+           <li><strong>Payment:</strong> Full rental balance to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary.</li>
+           <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450).</li>
           <li><strong>Event Hours:</strong> Standard bookings end at 10:00 PM. Late access is available for a fee until 12:00 AM; after-midnight access can extend until 2:00 AM when arranged in advance.</li>
            <li><strong>Decorations:</strong> No confetti, rice, glitter, beads, or similar items; no wall attachments</li>
-           <li><strong>Alcohol:</strong> Requires liquor license, Serving it Right, Food Safe, and additional $200,000 insurance</li>
-          <li><strong>Noise:</strong> Music must cease at your booked end time; respect Burnaby noise bylaws</li>
+           <li><strong>Alcohol:</strong> Requires liquor license and Serving It Right. Food Safe is only required if the event is open to the public.</li>
+          <li><strong>Noise:</strong> Music must cease at your booked end time; strictly comply with Burnaby Noise or Sound Abatement Bylaw (max 75 dBA after 10:00 PM).</li>
            <li><strong>Capacity:</strong> Maximum 140 persons; clear access to fire exits required</li>
-           <li><strong>Insurance:</strong> Renter must provide liability insurance proof at time of deposit</li>
+           <li><strong>Insurance:</strong> Renter must provide liability insurance proof. <a href="https://duuo.ca/" target="_blank" rel="noopener noreferrer">Duuo Event Insurance</a> is recommended (approx. $25 - $200+ depending on alcohol/attendees).</li>
            <li><strong>Setup/Cleanup:</strong> Renter responsible for setup, takedown, and cleaning up after themselves per the Hall Closing Checklist (spot clean spills, remove confetti/tape/decorations, take out garbage). Contractors handle regular deep cleaning twice a week — no deep-clean required from renters.</li>
-           <li><strong>Key Access:</strong> Renter unlocks lockbox for key at start, returns to office before leaving</li>
+           <li><strong>Access:</strong> Access codes will be sent via email prior to your event (we no longer use lockboxes).</li>
            <li><strong>Age Requirement:</strong> Responsible adult (19+) must remain on premises at all times</li>
         </Typography>
         <Typography variant="body1">
@@ -41,14 +42,13 @@ export default function PoliciesPage() {
         </Typography>
         {/* Option 1: Link to a PDF - Use the provided Google Drive link */}
         <Button
+          component={Link}
           variant="contained"
           startIcon={<DescriptionIcon />}
-          href="https://drive.google.com/file/d/15EikKMr1QP4vmVrKq7h7gp1XXlevhnQW/view?usp=sharing" // Updated with Google Drive link
-          target="_blank" // Keep target blank to open in new tab
-          rel="noopener noreferrer"
+          href="/contract"
           sx={{ mr: 2 }}
         >
-          View/Download Rental Agreement (PDF)
+          View / Print Rental Agreement
         </Button>
 
         {/* Option 2: Or Embed the document viewer (if feasible/desired) */}

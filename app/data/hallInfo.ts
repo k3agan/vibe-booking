@@ -60,9 +60,9 @@ export const hallInfo: HallInfo = {
   ],
   keyPolicies: [
     { title: "Decorations", details: "No confetti, rice, glitter, beads, gum, or similar items. No nails, tape, tacks, pins, screws, staples, or similar items on any surfaces." },
-    { title: "Alcohol", details: "Not allowed unless the Renter has obtained and presented necessary licenses (Liquor/cannabis, Serving it Right, Food Safe) and additional special event liability and liquor liability insurance ($200,000)." },
-    { title: "Insurance", details: "Renter must obtain insurance covering all liabilities. Proof required. Renter indemnifies the Association against all claims." },
-    { title: "Music/Noise", details: "All music must cease at your booked end time. Standard bookings end at 10:00 p.m.; late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. Be aware of Burnaby noise bylaws." },
+    { title: "Alcohol & Food", details: "Alcohol is not allowed unless the Renter has obtained and presented a Liquor/cannabis license and Serving It Right. Food Safe is only required if the event is open to the public." },
+    { title: "Insurance", details: "Renter must obtain liability insurance. Proof required. We recommend Duuo Event Insurance. Renter indemnifies the Association against all claims." },
+    { title: "Music/Noise", details: "All music must cease at your booked end time. Standard bookings end at 10:00 p.m.; late access is available for a fee until 12:00 a.m., and after-midnight access can extend until 2:00 a.m. when arranged in advance. All events must strictly comply with the Burnaby Noise or Sound Abatement Bylaw (max 75 dBA after 10:00 PM)." },
     { title: "Cleanup", details: "Renter responsible for cleaning up after themselves per the Hall Closing Checklist: spot clean spills and large messes, remove confetti/tape/decorations and anything brought in, take out garbage/recycling, and leave the Hall tidy and secure. Cleaning contractors visit twice a week to handle regular sweeping, mopping, and deep cleaning — the renter cleaning standard is not the same as the contractor cleaning standard. The Hall must be tidied and vacated by your booked end time." },
     { title: "Smoking", details: "Only permitted outside fire door. Butts must be disposed of correctly." },
     // Add other key policies derived from contract

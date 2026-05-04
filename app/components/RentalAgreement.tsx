@@ -136,21 +136,21 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
-            FULL BALANCE OF RENTAL AND DAMAGE DEPOSIT to be paid in full 31 days prior to event or function. 
-            Notice of cancellation must be received 21 days in advance of event or function to receive refund or deposit. 
+            FULL RENTAL BALANCE to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary. 
+            Notice of cancellation must be received 21 days in advance of the event or function to receive a refund. 
             The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
             STANDARD BOOKINGS END AT 10:00 P.M. Late access is available for a fee until 12:00 a.m., and after-midnight
-            access can extend until 2:00 a.m. when arranged in advance. Please be courteous to our neighbours and be aware of
-            Burnaby Bylaws regarding decibels of music allowed. The Hall shall be tidied and vacated by your booked end time.
+            access can extend until 2:00 a.m. when arranged in advance. The Hall must be vacated by your booked end time.
+            Music must cease at your booked end time. All events must strictly comply with the Burnaby Noise or Sound Abatement Bylaw (noise levels are restricted, particularly after 10:00 PM to a maximum of 75 dBA, and renters are responsible for any fines incurred).
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
             NO CONFETTI, RICE, GLITTER, BEADS OR OTHER SIMILAR ITEMS can be brought into the facility. 
-            If ANY OF THESE ITEMS are found on the floors after the function the renter agrees to pay expenses 
-            incurred by the Association for such extra clean-up and the same be deducted from damage deposit.
+            If ANY OF THESE ITEMS are found on the floors after the function, the renter agrees to pay expenses 
+            incurred by the Association for such extra clean-up.
           </Typography>
 
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mt: 3 }}>
@@ -160,13 +160,17 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           <List dense>
             <ListItem>
               <ListItemText 
-                primary="The Renter is responsible for unlocking the lock box to get the key at the start of the function and putting it back in front of the office before leaving."
+                primary="The Renter will receive an access code via email prior to the event (we no longer use lockboxes)."
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
             <ListItem>
               <ListItemText 
-                primary="The Renter shall take out insurance covering all liabilities including but not limited to negligence that may arise out of or result from the use and occupation of the premises. Proof of insurance shall be provided at the time of Deposit."
+                primary={
+                  <>
+                    The Renter must take out liability insurance covering the use and occupation of the premises and provide proof of insurance. We recommend using <a href="https://duuo.ca/" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>Duuo Event Insurance</a>. Costs vary from approximately $25 for non-liquor events up to $200+ for events with alcohol, depending on attendee count. (Hint: When getting an insurance quote, estimating a lower end of your expected attendee count can help reduce your premium).
+                  </>
+                }
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
@@ -184,7 +188,7 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
             </ListItem>
             <ListItem>
               <ListItemText 
-                primary="Alcoholic beverages on the premises are not allowed unless the Renter has obtained and presented: Liquor/cannabis license, Serving it Right, Food Safe and additional insurance ($200,000.00) for special events liability and liquor liability."
+                primary="Alcoholic beverages on the premises are not allowed unless the Renter has obtained and presented: Liquor/cannabis license and Serving It Right. Food Safe is only required if the event is open to the public (it is not strictly required for private events)."
                 primaryTypographyProps={{ variant: 'body2' }}
               />
             </ListItem>
