@@ -7,17 +7,15 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-/**
- * Cron job safety net: checks for expired projector sessions
- * and turns off the AV equipment if the iPad client failed to do so.
- * 
- * Should run every 5 minutes via Vercel Cron.
- * 
- * Add to vercel.json:
- * {
- *   "crons": [{ "path": "/api/cron/check-projector-sessions", "schedule": "*/5 * * * *" }]
- * }
- */
+// Cron job safety net: checks for expired projector sessions
+// and turns off the AV equipment if the iPad client failed to do so.
+// 
+// Should run every 5 minutes via Vercel Cron.
+// 
+// Add to vercel.json:
+// {
+//   "crons": [{ "path": "/api/cron/check-projector-sessions", "schedule": "*/5 * * * *" }]
+// }
 export async function GET(request: NextRequest) {
   try {
     // Optional: verify cron secret for security
