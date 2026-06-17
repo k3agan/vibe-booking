@@ -1,14 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabase } from '../../../../lib/supabase';
-import { getStripeApiKey } from '@/lib/api-key-rotation';
+import { getAllStripeSecretKeys } from '@/lib/api-key-rotation';
 import { getBookingById, updateBookingCancellation } from '@/lib/database';
 import { sendCancellationEmail } from '../../../lib/email';
 import { logEmailSent } from '@/lib/database';
 
-const stripe = new Stripe(getStripeApiKey(), {
-  apiVersion: '2025-08-27.basil',
-});
+const STRIPE_API_VERSION = '2025-08-27.basil';
+
+/**
+ * True when a Stripe error means "this resource doesn't exist on THIS account."
+ * That's the signal to retry the same operation against the other rotated key,
+ * since keys rotate daily and the payment may live on a different account than
+ * the one active today.
+ */
+function isResourceMissing(err: unknown): boolean {
+  if (err && typeof err === 'object') {
+    const e = err as { code?: string; statusCode?: number; message?: string };
+    if (e.code === 'resource_missing') return true;
+    if (e.statusCode === 404) return true;
+    if (typeof e.message === 'string' && /no such (payment_intent|charge|refund)/i.test(e.message)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Run a Stripe operation against each configured key (active account first)
+ * until one finds the referenced resource. Falls through to the next key ONLY
+ * when the resource is missing on the current account — any other error
+ * (e.g. charge already refunded, invalid amount) is thrown immediately so we
+ * never double-act across accounts. This is what makes the admin portal's
+ * cancel/refund work regardless of which rotated key processed the original
+ * payment.
+ */
+async function withStripeFallback<T>(fn: (stripe: Stripe) => Promise<T>): Promise<T> {
+  const keys = getAllStripeSecretKeys();
+  if (keys.length === 0) {
+    throw new Error('No Stripe secret key configured');
+  }
+
+  let lastErr: unknown;
+  for (let i = 0; i < keys.length; i++) {
+    const stripe = new Stripe(keys[i], { apiVersion: STRIPE_API_VERSION });
+    try {
+      return await fn(stripe);
+    } catch (err) {
+      lastErr = err;
+      if (isResourceMissing(err) && i < keys.length - 1) {
+        console.warn(
+          `[cancel-booking] Stripe resource missing on key #${i + 1} (…${keys[i].slice(-4)}), trying next rotated key`
+        );
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,7 +126,9 @@ export async function POST(request: NextRequest) {
             },
           };
 
-          const refund = await stripe.refunds.create(refundParams);
+          // Retry across rotated Stripe keys: the payment may have been
+          // processed under whichever account was active that day.
+          const refund = await withStripeFallback((stripe) => stripe.refunds.create(refundParams));
           stripeRefundId = refund.id;
           actualRefundAmount = requestedRefund;
           console.log(`✅ Stripe refund created: ${refund.id} for $${requestedRefund}`);
@@ -107,7 +159,9 @@ export async function POST(request: NextRequest) {
       booking.damage_deposit_authorization_status === 'authorized'
     ) {
       try {
-        await stripe.paymentIntents.cancel(booking.damage_deposit_authorization_id);
+        await withStripeFallback((stripe) =>
+          stripe.paymentIntents.cancel(booking.damage_deposit_authorization_id!)
+        );
         damageDepositReleased = true;
         console.log(`✅ Damage deposit hold released: ${booking.damage_deposit_authorization_id}`);
       } catch (depositError) {

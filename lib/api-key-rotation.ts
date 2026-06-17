@@ -91,6 +91,29 @@ export function getStripeKeyPair(): { secretKey: string; publishableKey: string 
 }
 
 /**
+ * Get every configured Stripe secret key, ordered with the currently-active
+ * key first, then the other account, then the legacy fallback. Duplicates and
+ * empties are removed.
+ *
+ * Use this for operations that target a specific Stripe resource created in the
+ * past (refunds, releasing a deposit hold, retrieving a payment intent). Because
+ * keys rotate by day, the resource may live on whichever account was active when
+ * the booking was paid — not the one active today. Trying each key in turn makes
+ * those operations succeed regardless of which account holds the resource.
+ */
+export function getAllStripeSecretKeys(): string[] {
+  const primary = process.env.STRIPE_SECRET_KEY_PRIMARY || process.env.STRIPE_SECRET_KEY || '';
+  const secondary = process.env.STRIPE_SECRET_KEY_SECONDARY || process.env.STRIPE_SECRET_KEY || '';
+  const legacy = process.env.STRIPE_SECRET_KEY || '';
+
+  // Active key first so the common case (resource on today's account) is fastest.
+  const active = getStripeSecretKey();
+  const ordered = [active, primary, secondary, legacy].filter((k): k is string => Boolean(k));
+
+  return Array.from(new Set(ordered));
+}
+
+/**
  * Log which Stripe account is currently active (for debugging)
  */
 export function logActiveStripeAccount() {
