@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { google } from 'googleapis';
 import { supabase } from '../../../../lib/supabase';
 import { getAllStripeSecretKeys } from '@/lib/api-key-rotation';
 import { getBookingById, updateBookingCancellation } from '@/lib/database';
@@ -7,6 +8,43 @@ import { sendCancellationEmail } from '../../../lib/email';
 import { logEmailSent } from '@/lib/database';
 
 const STRIPE_API_VERSION = '2025-08-27.basil';
+
+/**
+ * Delete the Google Calendar event tied to a cancelled booking so the date
+ * frees up on the public availability view (which reads straight from the
+ * calendar). Best-effort: a calendar failure must never block the refund/DB
+ * update that already succeeded, so this only logs on error. Mirrors the auth
+ * pattern used by app/api/calendar/route.ts (service account + calendar scope).
+ * Treats an already-gone event (404/410/deleted) as success.
+ */
+async function deleteCalendarEvent(eventId: string | null | undefined): Promise<boolean> {
+  if (!eventId) return false;
+  try {
+    const auth = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_CLIENT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/calendar'],
+    });
+    const authClient = await auth.getClient();
+    const calendar = google.calendar({ version: 'v3' });
+    const calendarId = process.env.GOOGLE_CALENDAR_ID || 'capitolhillhallrent@gmail.com';
+
+    await calendar.events.delete({ auth: authClient as any, calendarId, eventId });
+    console.log(`✅ Calendar event deleted: ${eventId}`);
+    return true;
+  } catch (err) {
+    const code = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status;
+    if (code === 404 || code === 410) {
+      // Already gone — treat as released.
+      console.log(`Calendar event ${eventId} already absent (${code}) — treating as released`);
+      return true;
+    }
+    console.error('Failed to delete calendar event (non-blocking):', err);
+    return false;
+  }
+}
 
 /**
  * True when a Stripe error means "this resource doesn't exist on THIS account."
@@ -178,6 +216,11 @@ export async function POST(request: NextRequest) {
       damageDepositReleased,
     });
 
+    // ── Remove Calendar Event ────────────────────────────────────────────────
+    // Free the date on the public availability view. Non-blocking: refund + DB
+    // are already done, so a calendar hiccup must not fail the request.
+    const calendarEventDeleted = await deleteCalendarEvent(booking.calendar_event_id);
+
     // ── Send Cancellation Email ──────────────────────────────────────────────
     try {
       const emailResult = await sendCancellationEmail({
@@ -213,6 +256,7 @@ export async function POST(request: NextRequest) {
       refundAmount: actualRefundAmount,
       stripeRefundId,
       damageDepositReleased,
+      calendarEventDeleted,
       message: actualRefundAmount
         ? `Booking cancelled and refund of $${actualRefundAmount.toFixed(2)} CAD issued successfully`
         : 'Booking cancelled successfully (no refund issued)',
