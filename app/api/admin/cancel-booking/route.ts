@@ -119,8 +119,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Guard against double-cancellation
+    // Guard against double-cancellation. Idempotent backfill: if a booking was
+    // already cancelled but still carries a calendar event (older cancellations
+    // pre-dating calendar cleanup), remove the event and clear the stored id
+    // instead of erroring. No refund/email is re-run.
     if (booking.status === 'cancelled') {
+      if (booking.calendar_event_id) {
+        const deleted = await deleteCalendarEvent(booking.calendar_event_id);
+        if (deleted) {
+          await supabase
+            .from('bookings')
+            .update({ calendar_event_id: null, updated_at: new Date().toISOString() })
+            .eq('id', bookingId);
+        }
+        return NextResponse.json({
+          success: true,
+          alreadyCancelled: true,
+          calendarEventDeleted: deleted,
+          message: deleted
+            ? 'Booking already cancelled — lingering calendar event removed'
+            : 'Booking already cancelled — calendar event could not be removed (see logs)',
+        });
+      }
       return NextResponse.json(
         { success: false, message: 'Booking is already cancelled' },
         { status: 400 }
@@ -220,6 +240,12 @@ export async function POST(request: NextRequest) {
     // Free the date on the public availability view. Non-blocking: refund + DB
     // are already done, so a calendar hiccup must not fail the request.
     const calendarEventDeleted = await deleteCalendarEvent(booking.calendar_event_id);
+    if (calendarEventDeleted && booking.calendar_event_id) {
+      await supabase
+        .from('bookings')
+        .update({ calendar_event_id: null, updated_at: new Date().toISOString() })
+        .eq('id', bookingId);
+    }
 
     // ── Send Cancellation Email ──────────────────────────────────────────────
     try {
