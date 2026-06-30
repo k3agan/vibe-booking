@@ -38,6 +38,7 @@ import { trackPurchase, trackBeginCheckout } from '../../lib/gtm-events';
 import { calculateDaysUntilEvent } from '../../lib/enhanced-conversions';
 import {
   calculateBookingPriceWithSurcharges,
+  getBookingRateInfo,
   getBookingWindowTimeStrings,
   validateBookingTimes
 } from '../../lib/booking';
@@ -247,9 +248,7 @@ export default function BookNowPage() {
     }
 
     if (formData.bookingType === 'hourly' && !formData.startTime) {
-      const dayOfWeek = formData.selectedDate.getDay();
-      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-      const hourlyRate = isWeekend ? 100 : 50;
+      const { hourlyRate } = getBookingRateInfo(formData.selectedDate);
       const basePrice = Number((hourlyRate * formData.duration).toFixed(2));
       setCalculatedPrice(basePrice);
       setPricingBreakdown({
@@ -870,11 +869,10 @@ export default function BookNowPage() {
                       </Typography>
                     )}
                     {(() => {
-                      const dayOfWeek = formData.selectedDate?.getDay() || 0;
-                      const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
+                      const { label } = getBookingRateInfo(formData.selectedDate);
                       return (
                         <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }}>
-                          {isWeekend ? 'Weekend Rate' : 'Weekday Rate'} Applied
+                          {label} Applied
                         </Typography>
                       );
                     })()}
@@ -884,19 +882,17 @@ export default function BookNowPage() {
                 <Divider sx={{ my: 2 }} />
 
                 {formData.selectedDate && (() => {
-                  const dayOfWeek = formData.selectedDate?.getDay() || 0;
-                  const isWeekend = dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0;
-                  const hourlyRate = isWeekend ? 100 : 50;
-                  const fullDayRate = isWeekend ? 900 : 750;
+                  const { usesWeekendRate, hourlyRate, fullDayRate } = getBookingRateInfo(formData.selectedDate);
                   const breakdown = pricingBreakdown;
+                  const rateTierLabel = usesWeekendRate ? 'Weekend' : 'Weekday';
 
                   return (
                     <>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2">
                           {formData.bookingType === 'hourly'
-                            ? `Hourly Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
-                            : `Full Day Rate (${isWeekend ? 'Weekend' : 'Weekday'})`
+                            ? `Hourly Rate (${rateTierLabel})`
+                            : `Full Day Rate (${rateTierLabel})`
                           }
                         </Typography>
                         <Typography variant="body2">
