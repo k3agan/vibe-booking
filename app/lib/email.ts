@@ -63,6 +63,8 @@ export interface BookingConfirmation {
   comped?: boolean;
   pricingBreakdown?: PricingBreakdownItem[];
   surchargeTotal?: number;
+  /** Stored damage_deposit_amount (hold, not a charge). Omitted/null when no hold will be placed. */
+  damageDepositAmount?: number | null;
 }
 
 export async function sendBookingConfirmation(confirmation: BookingConfirmation) {
@@ -252,6 +254,12 @@ function generateCustomerEmailHTML(confirmation: BookingConfirmation): string {
             <span>Total Amount Paid:</span>
             <span>$${calculatedPrice.toFixed(2)} CAD${isComped ? ' (Comped)' : ''}</span>
           </div>
+          ${confirmation.damageDepositAmount ? `
+          <div class="detail-row">
+            <span class="detail-label">Damage Deposit Hold:</span>
+            <span>$${confirmation.damageDepositAmount.toFixed(2)} CAD (a hold on your card placed up to 3 days before your event, not a charge)</span>
+          </div>
+          ` : ''}
         </div>
 
         <h3>What's Next?</h3>

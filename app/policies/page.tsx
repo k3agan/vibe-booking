@@ -19,7 +19,7 @@ export default function PoliciesPage() {
           Key Rules & Responsibilities Summary
         </Typography>
         <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 3, color: 'text.secondary' }}>
-           <li><strong>Payment:</strong> Full rental balance to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary.</li>
+           <li><strong>Payment:</strong> Full rental balance to be paid at the time of booking. A damage deposit hold (not a charge) is placed on your card before your event: 50% of the rental fee for Monday–Thursday bookings ending by 6:00 PM; for Friday, Saturday or Sunday bookings, or any booking ending after 6:00 PM, 150% of the rental fee for new renters or 100% for returning renters (anyone with a previous completed booking at the Hall), with a $500 minimum.</li>
            <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450).</li>
           <li><strong>Event Hours:</strong> Standard bookings end at 10:00 PM. Late access is available for a fee until 12:00 AM; after-midnight access can extend until 2:00 AM when arranged in advance.</li>
            <li><strong>Decorations:</strong> No confetti, rice, glitter, beads, or similar items; no wall attachments</li>

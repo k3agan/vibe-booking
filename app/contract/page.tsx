@@ -64,7 +64,7 @@ export default function ContractPage() {
         </Typography>
         <List dense>
           <ListItem>
-            <ListItemText primary="The full rental balance is paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary." />
+            <ListItemText primary="The full rental balance is paid at the time of booking. The Association will place a damage deposit hold on the Renter's card before the event. The hold is 50% of the Rental Fee for bookings on Monday to Thursday that end by 6:00 p.m. For bookings on a Friday, Saturday or Sunday, or that end after 6:00 p.m. on any day, the hold is 150% of the Rental Fee for new Renters and 100% of the Rental Fee for returning Renters (Renters with a previous completed booking at the Hall), with a minimum of $500." />
           </ListItem>
           <ListItem>
             <ListItemText primary="Notice of cancellation must be received 21 days in advance of the event to receive a refund. The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450." />

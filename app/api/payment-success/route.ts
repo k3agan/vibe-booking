@@ -11,6 +11,7 @@ import {
   validateBookingTimes
 } from '../../../lib/booking';
 import { createCalendarEventForBooking } from '../../../lib/booking-server';
+import { getDamageDepositForBooking } from '../../../lib/deposit-tiers-server';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -18,7 +19,7 @@ const stripe = new Stripe(getStripeApiKey(), {
 
 export async function POST(request: NextRequest) {
   try {
-    const { paymentIntentId, bookingData } = await request.json();
+    const { paymentIntentId, bookingData, quotedDamageDepositAmount } = await request.json();
 
     console.log('Payment successful:', {
       paymentIntentId,
@@ -51,6 +52,27 @@ export async function POST(request: NextRequest) {
       endDateTime: endDateTime.toISOString(),
       duration: bookingData.duration
     });
+
+    // Damage deposit tier (server value wins over the pre-payment quote; they use the same inputs)
+    const damageDepositAmount = await getDamageDepositForBooking({
+      calculatedPrice,
+      selectedDate: dateOnly,
+      startTime,
+      endTime,
+      email: bookingData.email,
+      phone: bookingData.phone,
+    });
+    if (
+      typeof quotedDamageDepositAmount === 'number' &&
+      quotedDamageDepositAmount !== damageDepositAmount
+    ) {
+      console.warn('Damage deposit quote differs from stored amount; using server value', {
+        quoted: quotedDamageDepositAmount,
+        stored: damageDepositAmount,
+      });
+    }
+    // Only set once the amount is saved on the booking (i.e. a hold will actually be placed)
+    let storedDamageDepositAmount: number | null = null;
 
     // Create calendar event (with production error handling)
     const calendarEventId = await createCalendarEventForBooking(bookingData, startDateTime, endDateTime);
@@ -88,11 +110,9 @@ export async function POST(request: NextRequest) {
         const paymentMethodId = paymentIntent.payment_method as string;
         
         if (paymentMethodId) {
-          // Calculate damage deposit (50% of rental fee)
-          const damageDepositAmount = calculatedPrice * 0.5;
-          
-          // Save payment method and damage deposit amount
+          // Save payment method and damage deposit amount (tiered; see lib/deposit-tiers.ts)
           await updateBookingPaymentMethod(savedBooking.id, paymentMethodId, damageDepositAmount);
+          storedDamageDepositAmount = damageDepositAmount;
           
           // Check if event is within 3 days - if so, authorize deposit immediately
           const vancouverTimezone = 'America/Vancouver';
@@ -217,6 +237,7 @@ export async function POST(request: NextRequest) {
         endDateTime: endDateTime.toISOString(),
         pricingBreakdown: pricing.items,
         surchargeTotal: pricing.surchargeTotal,
+        damageDepositAmount: storedDamageDepositAmount,
       });
       
       if (emailResult.success) {

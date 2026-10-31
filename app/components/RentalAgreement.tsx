@@ -15,6 +15,7 @@ import {
   Grid
 } from '@mui/material';
 import { getBookingWindowTimeStrings } from '../../lib/booking';
+import { formatDepositAmount } from '../../lib/deposit-tiers';
 
 interface RentalAgreementProps {
   open: boolean;
@@ -22,9 +23,11 @@ interface RentalAgreementProps {
   onAccept: () => void;
   formData: any;
   calculatedPrice: number;
+  /** Server-quoted damage deposit hold; null while loading/unavailable. */
+  damageDepositAmount?: number | null;
 }
 
-export default function RentalAgreement({ open, onClose, onAccept, formData, calculatedPrice }: RentalAgreementProps) {
+export default function RentalAgreement({ open, onClose, onAccept, formData, calculatedPrice, damageDepositAmount = null }: RentalAgreementProps) {
   const formatTimeLabel = (timeString: string) => {
     const [hour, minute] = timeString.split(':').map(Number);
     return new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
@@ -114,6 +117,12 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Total Cost:</strong> ${calculatedPrice}</Typography>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2">
+                  <strong>Damage Deposit Hold:</strong>{' '}
+                  {damageDepositAmount !== null ? formatDepositAmount(damageDepositAmount) : 'Shown before payment'}
+                </Typography>
+              </Grid>
               <Grid item xs={12}>
                 <Typography variant="body2"><strong>Contact Person:</strong> {formData.name || 'Renter'}</Typography>
               </Grid>
@@ -136,7 +145,7 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
-            FULL RENTAL BALANCE to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary. 
+            FULL RENTAL BALANCE to be paid at the time of booking. The Association will place a damage deposit hold on the Renter&apos;s card before the event. The hold is 50% of the Rental Fee for bookings on Monday to Thursday that end by 6:00 p.m. For bookings on a Friday, Saturday or Sunday, or that end after 6:00 p.m. on any day, the hold is 150% of the Rental Fee for new Renters and 100% of the Rental Fee for returning Renters (Renters with a previous completed booking at the Hall), with a minimum of $500. 
             Notice of cancellation must be received 21 days in advance of the event or function to receive a refund. 
             The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
           </Typography>
