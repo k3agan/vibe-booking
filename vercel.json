@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/check-projector-sessions",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/authorize-damage-deposits",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/deposit-watchdog",
+      "schedule": "0 21 * * *"
     }
   ]
 }

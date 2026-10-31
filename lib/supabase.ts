@@ -35,6 +35,9 @@ export interface Booking {
   damage_deposit_authorization_id?: string
   damage_deposit_authorization_status?: 'pending' | 'authorized' | 'captured' | 'released' | 'expired'
   damage_deposit_authorized_at?: string
+  /** Telemetry (database/add_damage_deposit_attempt_tracking.sql) */
+  damage_deposit_last_attempt_at?: string | null
+  damage_deposit_last_error?: string | null
   discount_code?: string | null
   discount_type?: 'percent' | 'fixed' | 'full' | null
   discount_value?: number | null

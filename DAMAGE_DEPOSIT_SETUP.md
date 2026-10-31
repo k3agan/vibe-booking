@@ -7,7 +7,7 @@ This system implements **damage deposit holds** using Stripe's authorization (pr
 ### How It Works
 
 1. **At Booking**: Customer pays full rental amount + payment method is saved
-2. **3 Days Before Event**: System automatically creates an authorization (hold) for 50% of rental fee
+2. **Up to 3 Days Before Event**: System automatically creates an authorization (hold) for 50% of rental fee (daily catch-up window: today → today+3)
 3. **After Event**:
    - **No damage**: Hold automatically expires after 7 days (no charge, no fees)
    - **Damage found**: Manually capture the hold in Stripe dashboard (charge + fees)
@@ -58,12 +58,27 @@ ALTER TABLE bookings
 
 ### 2. Cron Job
 
-**File**: `app/api/cron/authorize-damage-deposits/route.ts`
-- Runs daily
-- Finds bookings exactly 3 days away
-- Creates Stripe authorization (hold) for damage deposit
-- Sends email notification to customer
-- Updates database with authorization details
+**Files**: `app/api/cron/authorize-damage-deposits/route.ts` → `lib/deposit-hold.ts`
+- Runs daily (vercel.json, 17:00 UTC = 09:00 PST / 10:00 PDT)
+- Finds confirmed, paid, non-comped bookings from **today through today+3** (Vancouver) whose hold is still pending — a missed run or a short-lead booking is caught on the next run
+- Places the hold on the **Stripe account that owns the saved card** (`lib/stripe-accounts.ts`), not whichever rotated key is active
+- Idempotent: claims each booking once per Vancouver day (`damage_deposit_last_attempt_at`), Stripe Idempotency-Key per booking per day, Resend idempotency keys on every email
+- Records the outcome in `damage_deposit_last_error` (NULL = authorized)
+
+**Failure policy (decision 2026-10-31-01)**
+
+| Failure | Example | What happens |
+|---|---|---|
+| **Renter decline** — Stripe `card_error` | `insufficient_funds`, `card_declined`, `expired_card`, `authentication_required` | Failed PaymentIntent cancelled; booking cancelled with **no refund**; calendar event deleted; **all Seam door codes revoked**; renter gets the cancellation email; admins alerted |
+| **System failure** — anything else | wrong/unknown Stripe account (`resource_missing`), API/network error, no card on file, transient issuer codes (`processing_error`, `try_again_later`, `issuer_not_available`, `reenter_transaction`) | Booking **untouched**, stays pending, retried on the next daily run; admins alerted |
+
+Kill switch: set `DEPOSIT_DECLINE_AUTOCANCEL=false` → declines alert admins only; nothing is cancelled.
+
+Admin alerts go to kathy@caphillhall.ca, k3agan@gmail.com, info@caphillhall.ca (`ADMIN_ALERT_RECIPIENTS` in `app/lib/email.ts`).
+
+**Watchdog**: `app/api/cron/deposit-watchdog/route.ts` (vercel.json, 21:00 UTC) emails the admins every confirmed, non-comped booking from today through today+2 whose deposit is not `authorized` — catches the deposit cron not running at all. Sends nothing when the list is empty. Requires `CRON_SECRET`.
+
+**Migration**: `database/add_damage_deposit_attempt_tracking.sql` (two nullable columns).
 
 ### 3. Email Notification
 
@@ -75,51 +90,16 @@ ALTER TABLE bookings
 
 ## Cron Job Setup
 
-You need to configure a cron job to run daily at a specific time (e.g., 9 AM).
+Both crons are scheduled in `vercel.json` (Vercel sends `Authorization: Bearer $CRON_SECRET`). Do **not** also trigger them from an external scheduler (e.g. cron-job.org) — it's harmless (both routes are idempotent) but redundant.
 
-### Option 1: Cron-job.org (Recommended)
+Manual run (same auth header):
 
-1. Go to https://cron-job.org
-2. Create a new cron job:
-   - **URL**: `https://your-domain.com/api/cron/authorize-damage-deposits`
-   - **Schedule**: Daily at 09:00
-   - **Timezone**: America/Vancouver
-3. Enable the job
-
-### Option 2: Vercel Cron (If available on your plan)
-
-Create `vercel.json` in project root:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/authorize-damage-deposits",
-      "schedule": "0 9 * * *"
-    }
-  ]
-}
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-domain.com/api/cron/authorize-damage-deposits
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-domain.com/api/cron/deposit-watchdog
 ```
 
-### Option 3: GitHub Actions
-
-Create `.github/workflows/cron-damage-deposits.yml`:
-
-```yaml
-name: Authorize Damage Deposits
-on:
-  schedule:
-    - cron: '0 9 * * *'  # 9 AM UTC daily
-  workflow_dispatch:
-
-jobs:
-  authorize:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Cron Endpoint
-        run: |
-          curl -X GET https://your-domain.com/api/cron/authorize-damage-deposits
-```
+A booking is attempted at most once per Vancouver day; to force a same-day retry, clear its `damage_deposit_last_attempt_at`.
 
 ## Managing Damage Deposits
 
@@ -192,11 +172,7 @@ Monitor your cron job execution:
 
 ### Failed Authorizations
 
-If an authorization fails:
-- Customer's card may have insufficient funds
-- Card may be expired or invalid
-- Email the customer to update their payment method
-- Can manually authorize in Stripe dashboard
+Every failure emails the admins (see the failure policy above) and is recorded in `bookings.damage_deposit_last_error`. A declined card cancels the booking automatically; a system failure leaves it pending for the next run.
 
 ## Important Notes
 
@@ -224,7 +200,7 @@ If an authorization fails:
 ### Authorization Not Created
 
 1. Check booking has `payment_method_id` saved
-2. Check booking is exactly 3 days away
+2. Check the event is within today → today+3 (Vancouver) and `damage_deposit_last_error`
 3. Check booking status is 'confirmed'
 4. Check cron job is running
 5. Review application logs
