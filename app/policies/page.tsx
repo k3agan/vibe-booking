@@ -20,7 +20,7 @@ export default function PoliciesPage() {
         </Typography>
         <Typography variant="body2" component="ul" sx={{ pl: 2, mb: 3, color: 'text.secondary' }}>
            <li><strong>Payment:</strong> Full rental balance to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary.</li>
-           <li><strong>Damage deposit:</strong> A hold for the deposit amount is placed on the card used to book, up to 3 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded.</li>
+           <li><strong>Damage deposit:</strong> A hold for the deposit amount is placed on the card used to book, up to 4 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded.</li>
            <li><strong>Cancellation:</strong> 21 days notice required for refund; 50% cancellation fee (max $450).</li>
           <li><strong>Event Hours:</strong> Standard bookings end at 10:00 PM. Late access is available for a fee until 12:00 AM; after-midnight access can extend until 2:00 AM when arranged in advance.</li>
            <li><strong>Decorations:</strong> No confetti, rice, glitter, beads, or similar items; no wall attachments</li>
