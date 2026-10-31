@@ -144,13 +144,14 @@ describe('vancouverDateString', () => {
   it('uses the Vancouver calendar date, not UTC', () => {
     // 2026-11-01 04:30 UTC = 2026-10-31 21:30 PDT
     expect(vancouverDateString(new Date('2026-11-01T04:30:00Z'))).toBe('2026-10-31');
-    // 2026-12-01 07:59 UTC = 2026-11-30 23:59 PST
-    expect(vancouverDateString(new Date('2026-12-01T07:59:00Z'))).toBe('2026-11-30');
-    expect(vancouverDateString(new Date('2026-12-01T08:00:00Z'))).toBe('2026-12-01');
+    // 2026-01-15 07:59 UTC = 2026-01-14 23:59 PST. (Avoids dates after 2026-11-01: B.C. moves to
+    // permanent UTC-7 then, and the answer depends on the runtime's tzdata version.)
+    expect(vancouverDateString(new Date('2026-01-15T07:59:00Z'))).toBe('2026-01-14');
+    expect(vancouverDateString(new Date('2026-01-15T08:00:00Z'))).toBe('2026-01-15');
   });
 
   it('builds the today..today+3 window across DST and month/year ends', () => {
-    const now = new Date('2026-10-31T17:00:00Z'); // 10:00 PDT, DST ends Nov 1
+    const now = new Date('2026-10-31T17:00:00Z'); // 10:00 PDT, the day before B.C.'s last clock change would have been
     expect([0, 1, 2, 3].map((d) => vancouverDateString(now, d))).toEqual([
       '2026-10-31',
       '2026-11-01',

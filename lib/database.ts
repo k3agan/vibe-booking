@@ -298,13 +298,21 @@ export async function claimDamageDepositAttempt(bookingId: string, sinceIso: str
   return data ? { state: 'claimed', booking: data as Booking } : { state: 'already_attempted' }
 }
 
-/** Telemetry: outcome of the latest hold attempt (null = success). Best-effort, never throws. */
-export async function recordDamageDepositAttempt(bookingId: string, lastError: string | null): Promise<void> {
+/**
+ * Telemetry: outcome of the latest hold attempt (null = success) and the Stripe
+ * account it landed on (when known). Best-effort, never throws.
+ */
+export async function recordDamageDepositAttempt(
+  bookingId: string,
+  lastError: string | null,
+  stripeAccount?: string
+): Promise<void> {
   const { error } = await supabase
     .from('bookings')
     .update({
       damage_deposit_last_error: lastError,
       damage_deposit_last_attempt_at: new Date().toISOString(),
+      ...(stripeAccount ? { damage_deposit_stripe_account: stripeAccount.toLowerCase() } : {}),
     })
     .eq('id', bookingId)
   if (error) {

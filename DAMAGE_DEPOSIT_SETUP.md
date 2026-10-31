@@ -59,9 +59,9 @@ ALTER TABLE bookings
 ### 2. Cron Job
 
 **Files**: `app/api/cron/authorize-damage-deposits/route.ts` → `lib/deposit-hold.ts`
-- Runs daily (vercel.json, 17:00 UTC = 09:00 PST / 10:00 PDT)
+- Runs daily (vercel.json, 16:00 UTC = 09:00 Vancouver — B.C. is on permanent UTC-7 from 2026-11-01)
 - Finds confirmed, paid, non-comped bookings from **today through today+3** (Vancouver) whose hold is still pending — a missed run or a short-lead booking is caught on the next run
-- Places the hold on the **Stripe account that owns the saved card** (`lib/stripe-accounts.ts`), not whichever rotated key is active
+- Places the hold on the **Stripe account that owns the card** (`bookings.stripe_account`, else the ID signature — `lib/stripe-account-id.ts`), not whichever rotated key is active; if that fails for a non-card reason (e.g. `resource_missing`) it tries the **other** account. A `card_error` on either account is a decline; only "both accounts failed for system reasons" is a system failure. The account the hold landed on is recorded (`damage_deposit_stripe_account`, PI metadata)
 - Idempotent: claims each booking once per Vancouver day (`damage_deposit_last_attempt_at`), Stripe Idempotency-Key per booking per day, Resend idempotency keys on every email
 - Records the outcome in `damage_deposit_last_error` (NULL = authorized)
 
@@ -76,9 +76,9 @@ Kill switch: set `DEPOSIT_DECLINE_AUTOCANCEL=false` → declines alert admins on
 
 Admin alerts go to kathy@caphillhall.ca, k3agan@gmail.com, info@caphillhall.ca (`ADMIN_ALERT_RECIPIENTS` in `app/lib/email.ts`).
 
-**Watchdog**: `app/api/cron/deposit-watchdog/route.ts` (vercel.json, 21:00 UTC) emails the admins every confirmed, non-comped booking from today through today+2 whose deposit is not `authorized` — catches the deposit cron not running at all. Sends nothing when the list is empty. Requires `CRON_SECRET`.
+**Watchdog**: `app/api/cron/deposit-watchdog/route.ts` (vercel.json, 20:00 UTC = 13:00 Vancouver) emails the admins every confirmed, non-comped booking from today through today+2 whose deposit is not `authorized` — catches the deposit cron not running at all. Sends nothing when the list is empty. Requires `CRON_SECRET`.
 
-**Migration**: `database/add_damage_deposit_attempt_tracking.sql` (two nullable columns).
+**Migrations** (safe before or after deploy, either order): `database/add_damage_deposit_attempt_tracking.sql` (three nullable telemetry columns) and `supabase/migrations/20261031_bookings_stripe_account.sql` (`stripe_account`, a STORED GENERATED column from `payment_intent_id` — the app never writes it and never filters on it).
 
 ### 3. Email Notification
 

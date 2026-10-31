@@ -38,6 +38,12 @@ export interface Booking {
   /** Telemetry (database/add_damage_deposit_attempt_tracking.sql) */
   damage_deposit_last_attempt_at?: string | null
   damage_deposit_last_error?: string | null
+  damage_deposit_stripe_account?: string | null
+  /**
+   * READ-ONLY generated column (supabase/migrations/20261031_bookings_stripe_account.sql).
+   * Never write it; may be absent before the migration — use resolveBookingStripeAccount().
+   */
+  stripe_account?: 'primary' | 'secondary' | null
   discount_code?: string | null
   discount_type?: 'percent' | 'fixed' | 'full' | null
   discount_value?: number | null

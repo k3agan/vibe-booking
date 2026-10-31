@@ -13,7 +13,10 @@ jest.mock('../database', () => ({
   markDamageDepositAuthorized: jest.fn(),
   recordDamageDepositAttempt: jest.fn(),
 }));
-jest.mock('../stripe-accounts', () => ({ locatePaymentMethod: jest.fn() }));
+jest.mock('../stripe-accounts', () => ({
+  stripeSecretKeyFor: jest.fn((account: string) => (account === 'primary' ? 'sk_P' : 'sk_S')),
+  createStripeClient: jest.fn(),
+}));
 jest.mock('../cancel-booking', () => {
   class CancelBookingError extends Error {
     constructor(message: string, public readonly status: number) {
@@ -29,7 +32,7 @@ jest.mock('../../app/lib/email', () => ({
 }));
 
 import * as db from '../database';
-import { locatePaymentMethod } from '../stripe-accounts';
+import { createStripeClient, stripeSecretKeyFor } from '../stripe-accounts';
 import { cancelBooking, CancelBookingError } from '../cancel-booking';
 import { sendAdminAlertEmail, sendDamageDepositAuthNotification } from '../../app/lib/email';
 import { processDepositHold } from '../deposit-hold';
@@ -67,8 +70,9 @@ function makeBooking(overrides: Partial<Booking> = {}): Booking {
   } as Booking;
 }
 
-function fakeStripe() {
+function fakeStripe(customer: string | null = 'cus_X') {
   return {
+    paymentMethods: { retrieve: jest.fn().mockResolvedValue({ id: 'pm', customer }) },
     paymentIntents: {
       create: jest.fn(),
       cancel: jest.fn().mockResolvedValue({}),
@@ -76,21 +80,25 @@ function fakeStripe() {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const resourceMissing = () => new Stripe.errors.StripeInvalidRequestError({ type: 'invalid_request_error', code: 'resource_missing', statusCode: 404, message: "No such PaymentMethod: 'pm_1'" } as any);
+
+// `stripe` = PRIMARY account client (owner of pm_…CQrvU0Yvn4…), `other` = SECONDARY.
 let stripe: ReturnType<typeof fakeStripe>;
+let other: ReturnType<typeof fakeStripe>;
 const ORIGINAL_ENV = process.env;
 
 beforeEach(() => {
   jest.clearAllMocks();
   process.env = { ...ORIGINAL_ENV };
   delete process.env.DEPOSIT_DECLINE_AUTOCANCEL;
-  stripe = fakeStripe();
+  stripe = fakeStripe('cus_PRIMARY');
+  other = fakeStripe('cus_SECONDARY');
+  other.paymentMethods.retrieve.mockRejectedValue(resourceMissing());
+  m(stripeSecretKeyFor).mockImplementation((a: string) => (a === 'primary' ? 'sk_P' : 'sk_S'));
+  m(createStripeClient).mockImplementation((key: string) => (key === 'sk_P' ? stripe : other));
   m(db.claimDamageDepositAttempt).mockImplementation(async () => ({ state: 'claimed', booking: makeBooking() }));
   m(db.markDamageDepositAuthorized).mockImplementation(async () => makeBooking({ damage_deposit_authorization_status: 'authorized' }));
-  m(locatePaymentMethod).mockResolvedValue({
-    stripe,
-    paymentMethod: { id: 'pm_1AbcCQrvU0Yvn4xyz', customer: 'cus_PRIMARY' },
-    account: 'PRIMARY',
-  });
   m(cancelBooking).mockResolvedValue({
     booking: makeBooking({ status: 'cancelled' }),
     refundAmount: null,
@@ -130,7 +138,9 @@ describe('successful hold', () => {
     const r = await processDepositHold(makeBooking(), ctx);
 
     expect(r.outcome).toBe('authorized');
-    expect(locatePaymentMethod).toHaveBeenCalledWith('pm_1AbcCQrvU0Yvn4xyz');
+    expect(r.stripe_account).toBe('PRIMARY');
+    expect(createStripeClient).toHaveBeenCalledTimes(1); // owner account only, no fallback needed
+    expect(stripe.paymentMethods.retrieve).toHaveBeenCalledWith('pm_1AbcCQrvU0Yvn4xyz');
     const [params, opts] = stripe.paymentIntents.create.mock.calls[0];
     expect(params).toMatchObject({
       amount: 32500,
@@ -140,18 +150,18 @@ describe('successful hold', () => {
       capture_method: 'manual',
       confirm: true,
       off_session: true,
-      metadata: { booking_id: 'booking-1', type: 'damage_deposit', attempt_date: '2026-10-31' },
+      metadata: { booking_id: 'booking-1', type: 'damage_deposit', attempt_date: '2026-10-31', stripe_account: 'primary' },
     });
     expect(opts).toEqual({ idempotencyKey: 'deposit-hold:booking-1:2026-10-31' });
     expect(db.markDamageDepositAuthorized).toHaveBeenCalledWith('booking-1', 'pi_dep_ok');
-    expect(db.recordDamageDepositAttempt).toHaveBeenCalledWith('booking-1', null);
+    expect(db.recordDamageDepositAttempt).toHaveBeenCalledWith('booking-1', null, 'PRIMARY');
     expect(sendDamageDepositAuthNotification).toHaveBeenCalledTimes(1);
     expect(cancelBooking).not.toHaveBeenCalled();
     expect(sendAdminAlertEmail).not.toHaveBeenCalled();
   });
 
   it('omits customer when the card is not attached to one', async () => {
-    m(locatePaymentMethod).mockResolvedValue({ stripe, paymentMethod: { id: 'pm_x', customer: null }, account: 'SECONDARY' });
+    stripe.paymentMethods.retrieve.mockResolvedValue({ id: 'pm_x', customer: null });
     stripe.paymentIntents.create.mockResolvedValue({ id: 'pi_ok', status: 'requires_capture' });
     await processDepositHold(makeBooking(), ctx);
     expect(stripe.paymentIntents.create.mock.calls[0][0]).not.toHaveProperty('customer');
@@ -185,7 +195,8 @@ describe('renter decline → cancel, no refund', () => {
     });
     expect(db.recordDamageDepositAttempt).toHaveBeenCalledWith(
       'booking-1',
-      expect.stringContaining('RENTER_DECLINE insufficient_funds')
+      expect.stringContaining('RENTER_DECLINE insufficient_funds'),
+      'PRIMARY'
     );
     expect(sendAdminAlertEmail).toHaveBeenCalledTimes(1);
     expect(m(sendAdminAlertEmail).mock.calls[0][0].subject).toMatch(/auto-cancelled/);
@@ -229,21 +240,23 @@ describe('renter decline → cancel, no refund', () => {
 });
 
 describe('system failure → never cancel, alert, retry next run', () => {
-  it('wrong account: card not found on any configured Stripe account', async () => {
-    m(locatePaymentMethod).mockRejectedValue(
-      Object.assign(new Error("No such PaymentMethod 'pm_1' on any configured Stripe account"), {
-        code: 'payment_method_not_found',
-      })
-    );
+  it('card not found on EITHER account → system failure, both accounts tried', async () => {
+    stripe.paymentMethods.retrieve.mockRejectedValue(resourceMissing());
     const r = await processDepositHold(makeBooking(), ctx);
     expect(r.outcome).toBe('system_failure');
-    expect(r.code).toBe('payment_method_not_found');
+    expect(r.code).toBe('resource_missing');
+    expect(r.stripe_account).toBe('PRIMARY → SECONDARY');
+    expect(r.message).toMatch(/PRIMARY: resource_missing.*SECONDARY: resource_missing/);
+    expect(other.paymentMethods.retrieve).toHaveBeenCalled();
     expect(cancelBooking).not.toHaveBeenCalled();
     expect(sendAdminAlertEmail).toHaveBeenCalledTimes(1);
     expect(m(sendAdminAlertEmail).mock.calls[0][0].idempotencyKey).toBe('deposit-system-failure:booking-1:2026-10-31');
   });
 
-  it('resource_missing thrown by create', async () => {
+  it('resource_missing thrown by create on both accounts', async () => {
+    other.paymentMethods.retrieve.mockResolvedValue({ id: 'pm', customer: null });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    other.paymentIntents.create.mockRejectedValue(resourceMissing());
     stripe.paymentIntents.create.mockRejectedValue(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new Stripe.errors.StripeInvalidRequestError({ type: 'invalid_request_error', code: 'resource_missing', message: 'No such PaymentMethod' } as any)
@@ -266,7 +279,7 @@ describe('system failure → never cancel, alert, retry next run', () => {
     const r = await processDepositHold(makeBooking(), ctx);
     expect(r.outcome).toBe('system_failure');
     expect(r.code).toBe('missing_payment_method');
-    expect(locatePaymentMethod).not.toHaveBeenCalled();
+    expect(createStripeClient).not.toHaveBeenCalled();
     expect(cancelBooking).not.toHaveBeenCalled();
   });
 
@@ -278,10 +291,67 @@ describe('system failure → never cancel, alert, retry next run', () => {
     expect(cancelBooking).not.toHaveBeenCalled();
   });
 
-  it('leaves a processing PI alone', async () => {
+  it('leaves a processing PI alone and does NOT try the other account (no double hold)', async () => {
     stripe.paymentIntents.create.mockResolvedValue({ id: 'pi_proc', status: 'processing' });
     await processDepositHold(makeBooking(), ctx);
     expect(stripe.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(createStripeClient).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('account fallback', () => {
+  it('owner account says resource_missing → hold lands on the OTHER account (recorded)', async () => {
+    stripe.paymentMethods.retrieve.mockRejectedValue(resourceMissing());
+    other.paymentMethods.retrieve.mockResolvedValue({ id: 'pm', customer: 'cus_SECONDARY' });
+    other.paymentIntents.create.mockResolvedValue({ id: 'pi_sec', status: 'requires_capture' });
+
+    const r = await processDepositHold(makeBooking(), ctx);
+
+    expect(r).toMatchObject({ outcome: 'authorized', stripe_account: 'SECONDARY', payment_intent_id: 'pi_sec' });
+    expect(other.paymentIntents.create.mock.calls[0][0]).toMatchObject({ customer: 'cus_SECONDARY', metadata: { stripe_account: 'secondary' } });
+    expect(db.recordDamageDepositAttempt).toHaveBeenCalledWith('booking-1', null, 'SECONDARY');
+    expect(cancelBooking).not.toHaveBeenCalled();
+  });
+
+  it('owner account API error, other account card_error decline → RENTER_DECLINE → cancel, no refund', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stripe.paymentIntents.create.mockRejectedValue(new Stripe.errors.StripeAPIError({ type: 'api_error', message: 'boom' } as any));
+    other.paymentMethods.retrieve.mockResolvedValue({ id: 'pm', customer: null });
+    other.paymentIntents.create.mockRejectedValue(declineError());
+
+    const r = await processDepositHold(makeBooking(), ctx);
+
+    expect(r).toMatchObject({ outcome: 'declined_cancelled', stripe_account: 'SECONDARY', code: 'insufficient_funds' });
+    expect(m(cancelBooking).mock.calls[0][1].refundAmount).toBe(0);
+    expect(other.paymentIntents.cancel).toHaveBeenCalledWith('pi_dep_1');
+  });
+
+  it('a decline on the owner account is final — the other account is not tried', async () => {
+    stripe.paymentIntents.create.mockRejectedValue(declineError());
+    await processDepositHold(makeBooking(), ctx);
+    expect(createStripeClient).toHaveBeenCalledTimes(1);
+    expect(other.paymentMethods.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('stored stripe_account column decides which account is tried first', async () => {
+    m(db.claimDamageDepositAttempt).mockResolvedValue({
+      state: 'claimed',
+      booking: makeBooking({ stripe_account: 'secondary', payment_method_id: 'pm_no_signature' }),
+    });
+    other.paymentMethods.retrieve.mockResolvedValue({ id: 'pm', customer: null });
+    other.paymentIntents.create.mockResolvedValue({ id: 'pi_sec', status: 'requires_capture' });
+    const r = await processDepositHold(makeBooking(), ctx);
+    expect(r.stripe_account).toBe('SECONDARY');
+    expect(m(createStripeClient).mock.calls[0][0]).toBe('sk_S');
+    expect(stripe.paymentMethods.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('only one key configured (legacy STRIPE_SECRET_KEY) → tried once', async () => {
+    m(stripeSecretKeyFor).mockReturnValue('sk_P');
+    stripe.paymentMethods.retrieve.mockRejectedValue(resourceMissing());
+    const r = await processDepositHold(makeBooking(), ctx);
+    expect(r.outcome).toBe('system_failure');
+    expect(createStripeClient).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -290,7 +360,7 @@ describe('idempotency', () => {
     m(db.claimDamageDepositAttempt).mockResolvedValue({ state: 'already_attempted' });
     const r = await processDepositHold(makeBooking(), ctx);
     expect(r.outcome).toBe('skipped');
-    expect(locatePaymentMethod).not.toHaveBeenCalled();
+    expect(createStripeClient).not.toHaveBeenCalled();
     expect(stripe.paymentIntents.create).not.toHaveBeenCalled();
     expect(cancelBooking).not.toHaveBeenCalled();
     expect(sendAdminAlertEmail).not.toHaveBeenCalled();

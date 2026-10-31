@@ -7,7 +7,12 @@ import {
   markDamageDepositAuthorized,
   recordDamageDepositAttempt,
 } from './database';
-import { locatePaymentMethod } from './stripe-accounts';
+import { createStripeClient, stripeSecretKeyFor } from './stripe-accounts';
+import {
+  resolveBookingStripeAccount,
+  stripeAccountAttemptOrder,
+  StripeAccountLabel,
+} from './stripe-account-id';
 import { cancelBooking, CancelBookingError } from './cancel-booking';
 import {
   alertDetailsTable,
@@ -32,6 +37,12 @@ import {
  *                                  email renter + admins   (kill switch: DEPOSIT_DECLINE_AUTOCANCEL=false)
  *   SYSTEM_FAILURE (anything else) → booking untouched, stays pending, admins
  *                                  alerted, retried on the next daily run
+ *
+ * Account: the hold is tried on the account that owns the card first
+ * (bookings.stripe_account, else ID signature); if that fails for a non-card
+ * reason (e.g. resource_missing) it is tried on the OTHER account. A card_error
+ * on either account is a decline; only "both failed for system reasons" is a
+ * system failure.
  *
  * Idempotent: the booking is claimed once per Vancouver day before anything
  * happens, the Stripe hold uses an Idempotency-Key per booking per day, and
@@ -120,7 +131,7 @@ async function handleAuthorized(
     return { ...base, outcome: 'system_failure', code: 'db_update_failed', message };
   }
 
-  await recordDamageDepositAttempt(b.id, null);
+  await recordDamageDepositAttempt(b.id, null, account);
 
   if (!marked) {
     return { ...base, outcome: 'authorized', message: 'Already recorded by another run' };
@@ -164,7 +175,7 @@ async function handleRenterDecline(
   };
 
   if (failure.paymentIntentId) await cancelIntentQuietly(stripe, failure.paymentIntentId);
-  await recordDamageDepositAttempt(b.id, describeFailure(failure));
+  await recordDamageDepositAttempt(b.id, describeFailure(failure), account);
 
   if (!isAutoCancelEnabled()) {
     await sendAdminAlertEmail({
@@ -234,13 +245,8 @@ async function handleSystemFailure(
   b: Booking,
   ctx: DepositRunContext,
   failure: DepositFailure,
-  stripe?: Stripe,
   account?: string
 ): Promise<DepositHoldResult> {
-  // Don't leave a half-made PaymentIntent behind (but never cancel one that may still succeed).
-  if (stripe && failure.paymentIntentId && failure.paymentIntentStatus !== 'processing') {
-    await cancelIntentQuietly(stripe, failure.paymentIntentId);
-  }
   await recordDamageDepositAttempt(b.id, describeFailure(failure));
 
   const lastChance = b.selected_date <= ctx.today;
@@ -308,30 +314,78 @@ export async function processDepositHold(booking: Booking, ctx: DepositRunContex
     });
   }
 
-  // 3. Use the Stripe account that owns the saved card (not whichever key is active today).
-  let located: Awaited<ReturnType<typeof locatePaymentMethod>>;
-  try {
-    located = await locatePaymentMethod(b.payment_method_id);
-  } catch (err) {
-    const e = (err ?? {}) as { code?: string; type?: string; message?: string };
+  // 3. Owner account first (stored stripe_account, else ID signature); the
+  //    OTHER account only if the first fails for a non-card reason.
+  const order = stripeAccountAttemptOrder(resolveBookingStripeAccount(b));
+  const attempts: Array<{ account: string; failure: DepositFailure }> = [];
+  const triedKeys = new Set<string>();
+
+  for (const accountLabel of order) {
+    const key = stripeSecretKeyFor(accountLabel);
+    if (!key || triedKeys.has(key)) continue; // not configured, or same key as the account already tried
+    triedKeys.add(key);
+    const account = accountLabel.toUpperCase();
+    const stripe = createStripeClient(key);
+
+    const attempt = await attemptHold(stripe, accountLabel, b, ctx, amount);
+    if (attempt.intent) return handleAuthorized(b, ctx, attempt.intent, account);
+    const failure = attempt.failure!;
+    if (failure.kind === 'RENTER_DECLINE') return handleRenterDecline(b, ctx, failure, stripe, account);
+
+    attempts.push({ account, failure });
+    if (failure.paymentIntentStatus === 'processing') break; // a hold may still land on this account — don't risk a second one
+    if (failure.paymentIntentId) await cancelIntentQuietly(stripe, failure.paymentIntentId);
+  }
+
+  if (attempts.length === 0) {
     return handleSystemFailure(b, ctx, {
       kind: 'SYSTEM_FAILURE',
-      code: e.code || e.type || 'stripe_lookup_failed',
-      message: e.message || String(err),
+      code: 'no_stripe_key',
+      message: 'No Stripe secret key configured',
     });
   }
-  const { stripe, paymentMethod, account } = located;
+  // Every account failed for system reasons → never cancel.
+  const withPi = attempts.find((a) => a.failure.paymentIntentId);
+  return handleSystemFailure(
+    b,
+    ctx,
+    {
+      kind: 'SYSTEM_FAILURE',
+      code: attempts[0].failure.code,
+      message: attempts.map((a) => `${a.account}: ${a.failure.code} — ${a.failure.message}`).join(' | '),
+      paymentIntentId: withPi?.failure.paymentIntentId,
+      paymentIntentStatus: withPi?.failure.paymentIntentStatus,
+    },
+    attempts.map((a) => a.account).join(' → ')
+  );
+}
+
+/** One hold attempt on one account: look up the card there (for its customer), then hold. */
+async function attemptHold(
+  stripe: Stripe,
+  accountLabel: StripeAccountLabel,
+  b: Booking,
+  ctx: DepositRunContext,
+  amount: number
+): Promise<{ intent?: Stripe.PaymentIntent; failure?: DepositFailure }> {
+  let paymentMethod: Stripe.PaymentMethod;
+  try {
+    paymentMethod = await stripe.paymentMethods.retrieve(b.payment_method_id!);
+  } catch (err) {
+    // Looking a card up can't be a decline (e.g. resource_missing = wrong account).
+    return { failure: { ...classifyStripeError(err), kind: 'SYSTEM_FAILURE' } };
+  }
   const customer = typeof paymentMethod.customer === 'string' ? paymentMethod.customer : paymentMethod.customer?.id;
 
-  // 4. Place the hold. Idempotency-Key = one attempt per booking per day, even across concurrent runs.
   let intent: Stripe.PaymentIntent;
   try {
+    // Idempotency-Key = one hold per booking per day per account, even across concurrent runs.
     intent = await stripe.paymentIntents.create(
       {
         amount: Math.round(amount * 100),
         currency: 'cad',
         ...(customer ? { customer } : {}),
-        payment_method: b.payment_method_id,
+        payment_method: b.payment_method_id!,
         capture_method: 'manual', // a hold, not a charge
         confirm: true,
         off_session: true,
@@ -340,26 +394,18 @@ export async function processDepositHold(booking: Booking, ctx: DepositRunContex
           booking_id: b.id,
           type: 'damage_deposit',
           attempt_date: ctx.today,
-          stripe_account: account,
+          stripe_account: accountLabel,
         },
         description: `Damage deposit hold for ${b.event_type} - ${b.customer_name}`,
       },
       { idempotencyKey: depositHoldIdempotencyKey(b.id, ctx.today) }
     );
   } catch (err) {
-    const failure = classifyStripeError(err);
-    return failure.kind === 'RENTER_DECLINE'
-      ? handleRenterDecline(b, ctx, failure, stripe, account)
-      : handleSystemFailure(b, ctx, failure, stripe, account);
+    return { failure: classifyStripeError(err) };
   }
 
-  if (intent.status === 'requires_capture') {
-    return handleAuthorized(b, ctx, intent, account);
-  }
-  const failure = classifyUnsuccessfulIntent(intent);
-  return failure.kind === 'RENTER_DECLINE'
-    ? handleRenterDecline(b, ctx, failure, stripe, account)
-    : handleSystemFailure(b, ctx, failure, stripe, account);
+  if (intent.status === 'requires_capture') return { intent };
+  return { failure: classifyUnsuccessfulIntent(intent) };
 }
 
 /** Last-resort alert when processDepositHold itself throws (e.g. database unreachable). Never cancels. */

@@ -1,5 +1,11 @@
 import Stripe from 'stripe';
-import { candidateStripeKeys, isResourceMissing, stripeAccountForObjectId } from '../stripe-accounts';
+import { isResourceMissing } from '../stripe-accounts';
+import {
+  otherStripeAccount,
+  resolveBookingStripeAccount,
+  stripeAccountAttemptOrder,
+  stripeAccountForObjectId,
+} from '../stripe-account-id';
 
 describe('stripeAccountForObjectId', () => {
   it('detects the PRIMARY account (acct_1S6yNLCQrvU0Yvn4)', () => {
@@ -16,23 +22,25 @@ describe('stripeAccountForObjectId', () => {
   });
 });
 
-describe('candidateStripeKeys', () => {
-  const keys = { primary: 'sk_P', secondary: 'sk_S', fallback: ['sk_S', 'sk_P', 'sk_LEGACY'] };
-
-  it('puts the owner account first even when the other key is active today', () => {
-    // fallback order = active key first; today SECONDARY is active
-    expect(candidateStripeKeys('pm_1xCQrvU0Yvn4y', keys)).toEqual(['sk_P', 'sk_S', 'sk_LEGACY']);
-    expect(candidateStripeKeys('pm_1xJAT5KpLHRqy', keys)).toEqual(['sk_S', 'sk_P', 'sk_LEGACY']);
+describe('resolveBookingStripeAccount', () => {
+  it('prefers the stored (generated) stripe_account column', () => {
+    expect(
+      resolveBookingStripeAccount({ stripe_account: 'secondary', payment_method_id: 'pm_1xCQrvU0Yvn4y', payment_intent_id: 'pi_1xCQrvU0Yvn4y' })
+    ).toBe('secondary');
   });
-
-  it('falls back to the rotation order for unknown IDs', () => {
-    expect(candidateStripeKeys('pm_unknown', keys)).toEqual(['sk_S', 'sk_P', 'sk_LEGACY']);
+  it('falls back to the card ID, then the rental PaymentIntent ID (migration not applied)', () => {
+    expect(resolveBookingStripeAccount({ payment_method_id: 'pm_1xJAT5KpLHRqy', payment_intent_id: 'pi_1xCQrvU0Yvn4y' })).toBe('secondary');
+    expect(resolveBookingStripeAccount({ stripe_account: null, payment_method_id: 'pm_test', payment_intent_id: 'pi_1xCQrvU0Yvn4y' })).toBe('primary');
+    expect(resolveBookingStripeAccount({ stripe_account: 'garbage', payment_method_id: 'pm_test' })).toBeNull();
   });
+});
 
-  it('drops empty and duplicate keys', () => {
-    expect(candidateStripeKeys('pm_1xJAT5KpLHRqy', { primary: 'sk_ONE', secondary: '', fallback: ['sk_ONE', ''] })).toEqual([
-      'sk_ONE',
-    ]);
+describe('stripeAccountAttemptOrder', () => {
+  it('owner first, then the other account', () => {
+    expect(stripeAccountAttemptOrder('primary')).toEqual(['primary', 'secondary']);
+    expect(stripeAccountAttemptOrder('secondary')).toEqual(['secondary', 'primary']);
+    expect(stripeAccountAttemptOrder(null)).toEqual(['primary', 'secondary']);
+    expect(otherStripeAccount('secondary')).toBe('primary');
   });
 });
 
