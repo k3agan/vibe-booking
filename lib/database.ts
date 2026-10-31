@@ -1,4 +1,5 @@
 import { supabase, Booking, EmailLog } from './supabase'
+import { DEPOSIT_HOLD_DAYS_AHEAD, vancouverDateString } from './damage-deposit'
 
 // Booking operations
 export async function createBooking(bookingData: {
@@ -229,33 +230,139 @@ export async function updateBookingPaymentMethod(
   return data as Booking
 }
 
-export async function getBookingsNeedingDamageDepositAuth(daysAhead: number = 3) {
-  // Use proper timezone handling for date calculation
-  const vancouverTimezone = 'America/Vancouver';
-  const today = new Date();
-  const todayVancouver = new Date(today.toLocaleString("en-US", {timeZone: vancouverTimezone}));
-  todayVancouver.setHours(0, 0, 0, 0); // Reset to start of day
-  
-  const targetDate = new Date(todayVancouver);
-  targetDate.setDate(targetDate.getDate() + daysAhead);
-  const targetDateStr = targetDate.toISOString().split('T')[0];
-
-  console.log(`Looking for bookings on ${targetDateStr} (${daysAhead} days from today in Vancouver timezone)`);
+/**
+ * Bookings that still need a damage-deposit hold: selected_date from today
+ * through today+daysAhead (Vancouver) — a catch-up window, so a missed cron run
+ * or a booking made <3 days out still gets a hold. Includes bookings with no
+ * card on file so the cron can alert on them (they can't be held). Throws on
+ * query errors: an empty list must mean "nothing to do", never "DB failed".
+ */
+export async function getBookingsNeedingDamageDepositAuth(daysAhead: number = DEPOSIT_HOLD_DAYS_AHEAD) {
+  const now = new Date()
+  const fromDate = vancouverDateString(now)
+  const toDate = vancouverDateString(now, daysAhead)
+  console.log(`Looking for bookings from ${fromDate} to ${toDate} (Vancouver) needing a deposit hold`)
 
   const { data, error } = await supabase
     .from('bookings')
     .select('*')
-    .eq('selected_date', targetDateStr)
+    .gte('selected_date', fromDate)
+    .lte('selected_date', toDate)
     .eq('status', 'confirmed')
     .eq('payment_status', 'succeeded')
     .or('damage_deposit_authorization_status.eq.pending,damage_deposit_authorization_status.is.null')
-    .not('payment_method_id', 'is', null)
+    .not('comped', 'is', true)
+    .order('selected_date', { ascending: true })
 
   if (error) {
     console.error('Error fetching bookings needing damage deposit auth:', error)
-    return []
+    throw new Error(`Failed to fetch bookings needing damage deposit auth: ${error.message}`)
   }
 
+  return data as Booking[]
+}
+
+/** True when the error is "column doesn't exist" (migration not applied yet). */
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  return error.code === '42703' || error.code === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(error.message ?? '')
+}
+
+export type DepositAttemptClaim =
+  | { state: 'claimed'; booking: Booking }
+  | { state: 'already_attempted' }
+  | { state: 'tracking_unavailable' }
+
+/**
+ * Atomically claim today's hold attempt for a booking: stamps
+ * damage_deposit_last_attempt_at only if the booking is still confirmed and
+ * hasn't been attempted since `sinceIso` (start of today, Vancouver). A second
+ * cron run the same day — or a concurrent one — gets 'already_attempted' and
+ * must not touch the booking. Returns 'tracking_unavailable' if the telemetry
+ * columns don't exist yet (database/add_damage_deposit_attempt_tracking.sql).
+ */
+export async function claimDamageDepositAttempt(bookingId: string, sinceIso: string): Promise<DepositAttemptClaim> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({ damage_deposit_last_attempt_at: new Date().toISOString() })
+    .eq('id', bookingId)
+    .eq('status', 'confirmed')
+    .or(`damage_deposit_last_attempt_at.is.null,damage_deposit_last_attempt_at.lt."${sinceIso}"`)
+    .select()
+    .maybeSingle()
+
+  if (error) {
+    if (isMissingColumnError(error)) return { state: 'tracking_unavailable' }
+    throw new Error(`Failed to claim deposit attempt: ${error.message}`)
+  }
+  return data ? { state: 'claimed', booking: data as Booking } : { state: 'already_attempted' }
+}
+
+/**
+ * Telemetry: outcome of the latest hold attempt (null = success) and the Stripe
+ * account it landed on (when known). Best-effort, never throws.
+ */
+export async function recordDamageDepositAttempt(
+  bookingId: string,
+  lastError: string | null,
+  stripeAccount?: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      damage_deposit_last_error: lastError,
+      damage_deposit_last_attempt_at: new Date().toISOString(),
+      ...(stripeAccount ? { damage_deposit_stripe_account: stripeAccount.toLowerCase() } : {}),
+    })
+    .eq('id', bookingId)
+  if (error) {
+    console.error(`Could not record deposit attempt telemetry for ${bookingId} (migration applied?):`, error.message)
+  }
+}
+
+/**
+ * Mark the hold authorized only if it is still pending — returns null if
+ * another run already recorded it, so callers don't send the renter a second email.
+ */
+export async function markDamageDepositAuthorized(bookingId: string, authorizationId: string): Promise<Booking | null> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({
+      damage_deposit_authorization_id: authorizationId,
+      damage_deposit_authorization_status: 'authorized',
+      damage_deposit_authorized_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId)
+    .or('damage_deposit_authorization_status.eq.pending,damage_deposit_authorization_status.is.null')
+    .select()
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to mark damage deposit authorized: ${error.message}`)
+  }
+  return (data as Booking) ?? null
+}
+
+/**
+ * Watchdog: confirmed, non-comped bookings from today through today+daysAhead
+ * whose deposit hold is not 'authorized'.
+ */
+export async function getBookingsMissingDepositHold(daysAhead: number) {
+  const now = new Date()
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('*')
+    .gte('selected_date', vancouverDateString(now))
+    .lte('selected_date', vancouverDateString(now, daysAhead))
+    .eq('status', 'confirmed')
+    .neq('payment_status', 'comped')
+    .not('comped', 'is', true)
+    .or('damage_deposit_authorization_status.is.null,damage_deposit_authorization_status.neq.authorized')
+    .order('selected_date', { ascending: true })
+
+  if (error) {
+    throw new Error(`Failed to fetch bookings missing a deposit hold: ${error.message}`)
+  }
   return data as Booking[]
 }
 
@@ -306,19 +413,22 @@ export async function updateBookingCancellation(
     updatePayload.damage_deposit_authorization_status = 'released'
   }
 
+  // Guarded on status so two concurrent cancellations can't both "win".
   const { data, error } = await supabase
     .from('bookings')
     .update(updatePayload)
     .eq('id', bookingId)
+    .neq('status', 'cancelled')
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.error('Error updating booking cancellation:', error)
     throw new Error(`Failed to update booking cancellation: ${error.message}`)
   }
 
-  return data as Booking
+  // null = the booking was already cancelled by someone else.
+  return (data as Booking) ?? null
 }
 
 export async function getBookingById(bookingId: string) {

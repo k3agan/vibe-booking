@@ -97,8 +97,11 @@ export async function PATCH(request: NextRequest) {
           }
         }
         
+        // stripe_account is a generated column — writing it would fail the update.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { stripe_account: _generated, ...writable } = data;
         updateData = {
-          ...data,
+          ...writable,
           updated_at: new Date().toISOString(),
           // Reset reminder flags if date/time is modified so new access codes are created
           ...(isDateOrTimeModified && {

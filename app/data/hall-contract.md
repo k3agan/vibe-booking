@@ -14,6 +14,7 @@
 
 ## 1. Payment & Cancellation
 - **Payment:** The full rental balance is paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary.
+- **Damage deposit:** A hold for the deposit amount is placed on the card used to book, up to 3 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded.
 - **Cancellation:** Notice of cancellation must be received 21 days in advance of the event to receive a refund. The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
 
 ## 2. Event Hours & Noise Rules

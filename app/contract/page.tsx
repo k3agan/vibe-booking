@@ -67,6 +67,9 @@ export default function ContractPage() {
             <ListItemText primary="The full rental balance is paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary." />
           </ListItem>
           <ListItem>
+            <ListItemText primary="Damage deposit: a hold for the deposit amount is placed on the card used to book, up to 3 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded." />
+          </ListItem>
+          <ListItem>
             <ListItemText primary="Notice of cancellation must be received 21 days in advance of the event to receive a refund. The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450." />
           </ListItem>
         </List>
