@@ -233,7 +233,7 @@ export async function updateBookingPaymentMethod(
 /**
  * Bookings that still need a damage-deposit hold: selected_date from today
  * through today+daysAhead (Vancouver) — a catch-up window, so a missed cron run
- * or a booking made <3 days out still gets a hold. Includes bookings with no
+ * or a booking made <4 days out still gets a hold. Includes bookings with no
  * card on file so the cron can alert on them (they can't be held). Throws on
  * query errors: an empty list must mean "nothing to do", never "DB failed".
  */

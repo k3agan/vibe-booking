@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
           // Save payment method and damage deposit amount
           await updateBookingPaymentMethod(savedBooking.id, paymentMethodId, damageDepositAmount);
           
-          // Check if event is within 3 days - if so, authorize deposit immediately
+          // Check if event is within 4 days - if so, authorize deposit immediately
           const vancouverTimezone = 'America/Vancouver';
           const eventDate = fromZonedTime(`${dateOnly} 00:00:00`, vancouverTimezone);
           const today = new Date();
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
           todayVancouver.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
           const daysUntilEvent = Math.ceil((eventDate.getTime() - todayVancouver.getTime()) / (1000 * 60 * 60 * 24));
           
-          if (daysUntilEvent <= 3) {
+          if (daysUntilEvent <= 4) {
             console.log(`Event is in ${daysUntilEvent} days - authorizing damage deposit immediately`);
             
             try {
@@ -162,10 +162,10 @@ export async function POST(request: NextRequest) {
               }
             } catch (authError) {
               console.error('Failed to authorize damage deposit immediately:', authError);
-              // Don't fail the booking - cron will retry in 3 days if needed
+              // Don't fail the booking - cron will retry daily from 4 days out
             }
           } else {
-            console.log(`Event is in ${daysUntilEvent} days - damage deposit will be authorized by cron job 3 days before`);
+            console.log(`Event is in ${daysUntilEvent} days - damage deposit will be authorized by cron job 4 days before`);
           }
         }
       } catch (paymentMethodError) {

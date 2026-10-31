@@ -11,10 +11,10 @@
 export const VANCOUVER_TZ = 'America/Vancouver';
 
 /** Holds are placed up to this many days before the event (catch-up window: today..today+N). */
-export const DEPOSIT_HOLD_DAYS_AHEAD = 3;
+export const DEPOSIT_HOLD_DAYS_AHEAD = 4;
 
 /** The watchdog lists bookings within today..today+N that still have no hold. */
-export const DEPOSIT_WATCHDOG_DAYS_AHEAD = 2;
+export const DEPOSIT_WATCHDOG_DAYS_AHEAD = 3;
 
 export type DepositFailureKind = 'RENTER_DECLINE' | 'SYSTEM_FAILURE';
 
