@@ -120,6 +120,37 @@ it('checks dispute state on an unexpanded charge, not only inline charge evidenc
   noRefundOrCancellationEffects();
 });
 
+it.each(['failed', 'canceled', 'pending', 'requires_action', null, undefined, 'unknown', 'SUCCEEDED', true, {}])(
+  'refund status %s cannot become successful-refund records, messages or cleanup', async status => {
+    primary.refunds.create.mockResolvedValue({ id: 're_test', status } as never);
+    const { response, body } = await cancel(booking(), 25);
+    expect(response.status).toBe(502);
+    expect(body).toMatchObject({ success: false, code: 'REFUND_RECONCILIATION_REQUIRED', stripeRefundId: 're_test' });
+    expect(body.refundIssued).not.toBe(true);
+    expect(body.message).toMatch(/reconcile/i);
+    expect(body.message).toMatch(/may already exist/i);
+    // A Stripe write DID happen: do not mislabel this as a no-external-effect refusal.
+    expect(primary.refunds.create).toHaveBeenCalledTimes(1);
+    expect(primary.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ amount: 2500 }), { idempotencyKey: 'cancellation-refund:booking-test' });
+    expect(secondary.refunds.create).not.toHaveBeenCalled();
+    noDownstreamEffects();
+  }
+);
+
+it.each([null, undefined, {}, { status: 'succeeded' }, { id: '', status: 'succeeded' }])(
+  'malformed refund result %s fails closed with truthful reconciliation language', async result => {
+    primary.refunds.create.mockResolvedValue(result as never);
+    const { response, body } = await cancel();
+    expect(response.status).toBe(502);
+    expect(body).toMatchObject({ success: false, code: 'REFUND_RECONCILIATION_REQUIRED' });
+    expect(body.refundIssued).not.toBe(true);
+    expect(body.message).toMatch(/may already exist.*reconcile/i);
+    expect(primary.refunds.create).toHaveBeenCalledTimes(1);
+    expect(secondary.refunds.create).not.toHaveBeenCalled();
+    noDownstreamEffects();
+  }
+);
+
 it('explicitly undisputed successful charge/refund still completes cleanup and records only verified refund', async () => {
   const { response, body } = await cancel();
   expect(response.status).toBe(200);
