@@ -1,6 +1,6 @@
 # Admin cancellation security and refund contract
 
-Review context: https://github.com/k3agan/chh-ops/issues/10. This document describes local code, not verified production configuration. No production calls, refunds, cancellations, secret provisioning or deployment were performed for this PR.
+Review context: https://github.com/k3agan/chh-ops/issues/10. This document describes local code, not verified production configuration. No worker production calls, refunds, cancellations, secret provisioning or manual deployment were performed. The existing GitHub/Vercel integration automatically runs preview checks on branch pushes; those are not worker production/deploy tests.
 
 ## Authentication
 
