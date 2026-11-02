@@ -67,11 +67,11 @@ beforeAll(() => {
 });
 afterAll(() => { process.env = originalEnv; jest.restoreAllMocks(); });
 
-async function cancel(b = booking(), amount: number | null | undefined = null) {
+async function cancel(b = booking(), amount: number | null | 'omitted' = null) {
   jest.mocked(getBookingById).mockResolvedValue(b);
   const response = await POST(new NextRequest('https://hall.example/api/admin/cancel-booking', {
     method: 'POST', headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ bookingId: b.id, refundAmount: amount }),
+    body: JSON.stringify({ bookingId: b.id, ...(amount === 'omitted' ? {} : { refundAmount: amount }) }),
   }));
   return { response, body: await response.json() };
 }
@@ -150,6 +150,93 @@ it.each([null, undefined, {}, { status: 'succeeded' }, { id: '', status: 'succee
     noDownstreamEffects();
   }
 );
+
+describe.each(['pending', 'failed', 'refunded', null, undefined, 'cancelled', 'comped'])('recorded rental PI with stale DB payment_status %s', payment_status => {
+  it.each([null, 25, 'omitted'] as const)('uses actual PRIMARY Stripe balance for refund %s, not the DB flag', async amount => {
+    primary.paymentIntents.retrieve.mockResolvedValue(intent({ latest_charge: charge({ amount_refunded: 2500 }) }));
+    const { response, body } = await cancel(booking({ payment_status } as never), amount);
+    const expected = amount === 25 ? 25 : 75;
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, refundIssued: true, refundAmount: expected });
+    expect(primary.paymentIntents.retrieve).toHaveBeenCalledWith('pi_test_CQrvU0Yvn4', { expand: ['latest_charge'] });
+    expect(primary.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ amount: expected * 100 }), { idempotencyKey: 'cancellation-refund:booking-test' });
+    expect(updateBookingCancellation).toHaveBeenCalledWith('booking-test', expect.objectContaining({ refundAmount: expected, stripeRefundId: 're_test' }));
+    expect(sendCancellationEmail).toHaveBeenCalledWith(expect.objectContaining({ refundAmount: expected }), expect.anything());
+  });
+
+  it.each([null, 25, 'omitted'] as const)('cannot bypass SECONDARY refund refusal for request %s', async amount => {
+    const { response, body } = await cancel(booking({ payment_status, payment_intent_id: 'pi_test_JAT5KpLHRq' } as never), amount);
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({ success: false, code: 'SECONDARY_ACCOUNT_REFUND_REFUSED', customerEmail: 'renter@example.test' });
+    expect(createStripeClient).not.toHaveBeenCalled();
+    noRefundOrCancellationEffects();
+  });
+
+  it('unreadable recorded payment is an error, not evidence of no payment/default free cancellation', async () => {
+    primary.paymentIntents.retrieve.mockRejectedValue(new Error('offline lookup unavailable'));
+    const { response, body } = await cancel(booking({ payment_status } as never));
+    expect(response.status).toBe(502);
+    expect(body.success).toBe(false);
+    expect(body.refundIssued).not.toBe(true);
+    expect(primary.paymentIntents.retrieve).toHaveBeenCalledTimes(1);
+    noRefundOrCancellationEffects();
+  });
+
+  it.each(['pi_test_CQrvU0Yvn4', 'pi_test_JAT5KpLHRq', null])('explicit zero remains an intentional no-rental-refund cancellation (%s)', async payment_intent_id => {
+    const { response, body } = await cancel(booking({ payment_status, payment_intent_id } as never), 0);
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ success: true, refundIssued: false, refundAmount: null, stripeRefundId: null });
+    expect(createStripeClient).not.toHaveBeenCalled();
+    expect(primary.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(primary.refunds.create).not.toHaveBeenCalled();
+    expect(secondary.refunds.create).not.toHaveBeenCalled();
+    expect(updateBookingCancellation).toHaveBeenCalledWith('booking-test', expect.objectContaining({ refundAmount: null, stripeRefundId: null }));
+    expect(primary.paymentIntents.cancel).toHaveBeenCalledWith('pi_hold_test');
+    expect(calendarDelete).toHaveBeenCalledTimes(1);
+    expect(revokeAccessCodesForBooking).toHaveBeenCalledTimes(1);
+    expect(sendCancellationEmail).toHaveBeenCalledWith(expect.objectContaining({ refundAmount: null }), expect.anything());
+  });
+});
+
+it.each(['succeeded', 'pending', 'failed', 'refunded', null, undefined, 'cancelled'])('missing rental evidence with DB status %s cannot become a default free cancellation', async payment_status => {
+  const { response, body } = await cancel(booking({ payment_status, payment_intent_id: null } as never));
+  expect(response.status).toBe(409);
+  expect(body.success).toBe(false);
+  expect(createStripeClient).not.toHaveBeenCalled();
+  noRefundOrCancellationEffects();
+});
+
+it.each([null, 25, 'omitted'] as const)('missing Stripe charge evidence cannot become cancellation success for request %s', async amount => {
+  primary.paymentIntents.retrieve.mockResolvedValue(intent({ latest_charge: null }));
+  const { response } = await cancel(booking({ payment_status: 'pending' }), amount);
+  expect(response.status).toBe(409);
+  noRefundOrCancellationEffects();
+});
+
+it.each([undefined, '', 'pi_wrong_CQrvU0Yvn4'])('unverifiable/mismatched returned rental identity %s fails before refund', async id => {
+  primary.paymentIntents.retrieve.mockResolvedValue(intent({ id }));
+  const { response } = await cancel(booking({ payment_status: 'pending' }));
+  expect(response.status).toBe(409);
+  noRefundOrCancellationEffects();
+});
+
+it.each([null, 'omitted'] as const)('truly comped booking with no recorded rental PI retains legitimate no-refund cancellation (%s)', async amount => {
+  const { response, body } = await cancel(booking({ payment_status: 'comped', payment_intent_id: null, damage_deposit_authorization_id: undefined }), amount);
+  expect(response.status).toBe(200);
+  expect(body).toMatchObject({ success: true, refundIssued: false, refundAmount: null, stripeRefundId: null });
+  expect(createStripeClient).not.toHaveBeenCalled();
+  expect(withStripeFallback).not.toHaveBeenCalled();
+  expect(primary.refunds.create).not.toHaveBeenCalled();
+  expect(updateBookingCancellation).toHaveBeenCalledWith('booking-test', expect.objectContaining({ refundAmount: null, stripeRefundId: null }));
+  expect(sendCancellationEmail).toHaveBeenCalledWith(expect.objectContaining({ refundAmount: null }), expect.anything());
+});
+
+it.each(['succeeded', 'pending', 'failed', 'comped', null])('positive request with no rental evidence is refused, including comped (%s)', async payment_status => {
+  const { response } = await cancel(booking({ payment_status, payment_intent_id: null } as never), 25);
+  expect(response.status).toBe(409);
+  expect(createStripeClient).not.toHaveBeenCalled();
+  noRefundOrCancellationEffects();
+});
 
 it('explicitly undisputed successful charge/refund still completes cleanup and records only verified refund', async () => {
   const { response, body } = await cancel();

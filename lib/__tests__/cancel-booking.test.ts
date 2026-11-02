@@ -200,6 +200,6 @@ it('refuses ambiguous identical PRIMARY and SECONDARY keys', async () => {
 });
 
 it('never silently cancels an unpaid booking while ignoring an explicit positive refund', async () => {
-  await expect(cancelBooking(booking({ payment_status: 'comped' }), options(10))).rejects.toMatchObject({ status: 409 });
+  await expect(cancelBooking(booking({ payment_status: 'comped', payment_intent_id: null }), options(10))).rejects.toMatchObject({ status: 409 });
   noCancellationEffects();
 });
