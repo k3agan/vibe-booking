@@ -138,6 +138,11 @@ async function refundRental(booking: Booking, opts: CancelBookingOptions): Promi
     const charge = typeof intent.latest_charge === 'string'
       ? await stripe.charges.retrieve(intent.latest_charge)
       : intent.latest_charge;
+    // Stripe retains disputed=true for accepted/lost chargebacks too. Missing
+    // or malformed dispute evidence is not proof that a refund is safe.
+    if (!charge || charge.disputed !== false) {
+      throw new CancelBookingError('Stripe charge is disputed or its dispute state cannot be verified; booking was not cancelled', 409);
+    }
     const captured = charge.amount_captured;
     const refunded = charge.amount_refunded;
     if (!charge.paid || !charge.captured || charge.currency !== 'cad' ||
