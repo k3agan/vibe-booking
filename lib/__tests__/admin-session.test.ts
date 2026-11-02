@@ -105,3 +105,19 @@ it('portal does not claim DB price is the refundable Stripe balance', () => {
   expect(source).toContain('remaining Stripe balance');
   expect(source).toContain('SECONDARY_ACCOUNT_REFUND_REFUSED');
 });
+
+it('bad bearer header cannot fall back to a valid portal cookie', async () => {
+  const cookie = await login();
+  const denied = requireAdmin(new NextRequest(`${origin}/api/admin/cancel-booking`, {
+    method: 'POST', headers: { Origin: origin, Cookie: cookie, Authorization: 'Bearer wrong' },
+  }));
+  expect(denied?.status).toBe(401);
+});
+
+it('rejects malformed login JSON without setting a cookie', async () => {
+  const response = await POST(new NextRequest(`${origin}/api/admin/session`, {
+    method: 'POST', headers: { Origin: origin }, body: 'invalid-json',
+  }));
+  expect(response.status).toBe(400);
+  expect(response.headers.get('set-cookie')).toBeNull();
+});

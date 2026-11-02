@@ -117,7 +117,7 @@ it('retrieves an unexpanded charge before checking refunds', async () => {
   expect(primary.charges.retrieve).toHaveBeenCalledWith('ch_test');
 });
 
-it.each([NaN, Infinity, -1, 1.005, '20', '', false, {}, 9007199254740991])('rejects invalid monetary input %s before any work', async amount => {
+it.each([NaN, Infinity, -1, 1.005, 1e-10, '20', '', false, {}, 9007199254740991])('rejects invalid monetary input %s before any work', async amount => {
   await expect(cancelBooking(booking(), options(amount as number))).rejects.toMatchObject({ status: 400 });
   noCancellationEffects();
   expect(createStripeClient).not.toHaveBeenCalled();
@@ -186,4 +186,20 @@ it.each(['failed', 'canceled'])('does not cancel if Stripe returns a %s refund',
   await expect(cancelBooking(booking(), options(10))).rejects.toMatchObject({ status: 502 });
   expect(updateBookingCancellation).not.toHaveBeenCalled();
   expect(sendCancellationEmail).not.toHaveBeenCalled();
+});
+
+it.each([0.01, 0.29, 1.15, 10.99])('accepts exact-cent CAD amount %s without floating point false rejection', async amount => {
+  await cancelBooking(booking(), options(amount));
+  expect(primary.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ amount: Math.round(amount * 100) }), expect.anything());
+});
+
+it('refuses ambiguous identical PRIMARY and SECONDARY keys', async () => {
+  process.env.STRIPE_SECRET_KEY_SECONDARY = process.env.STRIPE_SECRET_KEY_PRIMARY;
+  await expect(cancelBooking(booking(), options(10))).rejects.toMatchObject({ status: 503 });
+  noCancellationEffects();
+});
+
+it('never silently cancels an unpaid booking while ignoring an explicit positive refund', async () => {
+  await expect(cancelBooking(booking({ payment_status: 'comped' }), options(10))).rejects.toMatchObject({ status: 409 });
+  noCancellationEffects();
 });

@@ -98,6 +98,11 @@ it('returns structured secondary-account routing details only to an authenticate
   });
 });
 
+it('authenticated malformed JSON returns a client error, not a server error', async () => {
+  expect((await POST(request(`Bearer ${secret}`, 'invalid-json'))).status).toBe(400);
+  expect(getBookingById).not.toHaveBeenCalled();
+});
+
 it('accepts portal session cancellation end-to-end but rejects a cross-origin attempt before lookup', async () => {
   for (const origin of ['https://attacker.example', 'https://hall.example']) {
     jest.mocked(getBookingById).mockClear();
