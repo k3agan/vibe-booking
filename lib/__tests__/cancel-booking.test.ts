@@ -25,7 +25,7 @@ const booking = (overrides: Partial<Booking> = {}): Booking => ({
   payment_intent_id: 'pi_test_CQrvU0Yvn4', calculated_price: 100, ...overrides,
 } as Booking);
 const options = (refundAmount: number | null) => ({ refundAmount, cancellationReason: null, cancelledBy: 'admin' });
-const charge = (overrides = {}) => ({ id: 'ch_test', amount_captured: 10000, amount_refunded: 0, currency: 'cad', paid: true, captured: true, ...overrides });
+const charge = (overrides = {}) => ({ id: 'ch_test', amount_captured: 10000, amount_refunded: 0, currency: 'cad', paid: true, captured: true, disputed: false, ...overrides });
 function fakeStripe() {
   return {
     paymentIntents: {
