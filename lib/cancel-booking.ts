@@ -131,6 +131,9 @@ async function refundRental(booking: Booking, opts: CancelBookingOptions): Promi
       }
       throw err;
     }
+    if (!intent || intent.id !== intentId) {
+      throw new CancelBookingError('Rental PaymentIntent identity cannot be verified; booking was not cancelled', 409);
+    }
     if (stripeAccountForObjectId(intent.id) === 'secondary') refuseSecondaryRefund(booking);
     if (intent.status !== 'succeeded' || intent.currency !== 'cad' || !intent.latest_charge) {
       throw new CancelBookingError('Rental payment has no succeeded CAD charge to refund', 409);
@@ -202,17 +205,14 @@ export async function cancelBooking(booking: Booking, opts: CancelBookingOptions
   let damageDepositReleased = false;
 
   // ── Stripe Refund ────────────────────────────────────────────────────────
-  if (booking.payment_status === 'succeeded' && opts.refundAmount !== 0) {
+  // A DB flag is not payment truth. Any recorded rental PI must be verified
+  // for nonzero/default requests, even if the local flag says failed/comped/etc.
+  // Only explicit zero OR a genuinely comped record with no rental PI may skip.
+  const compedWithoutRental = booking.payment_status === 'comped' && booking.payment_intent_id == null;
+  if (opts.refundAmount !== 0 && !(compedWithoutRental && opts.refundAmount === null)) {
     const refund = await refundRental(booking, opts);
     stripeRefundId = refund.id;
     actualRefundAmount = refund.amount;
-  } else if (booking.payment_status === 'cancelled') {
-    throw new CancelBookingError('Payment already cancelled for this booking', 400);
-  } else if (opts.refundAmount !== null && opts.refundAmount > 0) {
-    throw new CancelBookingError('No succeeded rental payment to refund', 409);
-  } else if (booking.payment_status === 'comped') {
-    // Comped bookings: cancel without any Stripe calls
-    console.log('Comped booking — skipping Stripe refund');
   }
 
   // ── Release Damage Deposit Hold ──────────────────────────────────────────
