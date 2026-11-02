@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBookingById } from '@/lib/database';
+import { requireAdmin } from '@/lib/admin-auth';
 import {
   cancelBooking,
   CancelBookingError,
@@ -14,6 +15,9 @@ import {
  * same way.
  */
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const { bookingId, refundAmount, cancellationReason } = await request.json();
 
