@@ -42,25 +42,38 @@ import {
   getBookingWindowTimeStrings,
   validateBookingTimes
 } from '../../lib/booking';
+import { formatDepositAmount } from '../../lib/deposit-tiers';
 
 const FRIEND_CODE_REGEX = /(friend|discount)\s*code\s*[:#]\s*[a-z0-9_-]+/i;
 
+type DamageDepositQuoteStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 // Payment Form Component
-function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
+function PaymentForm({ formData, calculatedPrice, onPaymentSuccess, damageDepositAmount, damageDepositStatus, onRetryDamageDeposit }: {
   formData: any;
   calculatedPrice: number;
   onPaymentSuccess: (bookingRef: string) => void;
+  damageDepositAmount: number | null;
+  damageDepositStatus: DamageDepositQuoteStatus;
+  onRetryDamageDeposit: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  // The renter must see the exact deposit hold amount before paying.
+  const depositReady = damageDepositStatus === 'ready' && damageDepositAmount !== null;
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!stripe || !elements) {
       setPaymentError('Stripe not loaded. Please refresh the page.');
+      return;
+    }
+
+    if (!depositReady) {
+      setPaymentError('Please wait while we calculate your damage deposit hold.');
       return;
     }
 
@@ -112,6 +125,7 @@ function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
           body: JSON.stringify({
             paymentIntentId: paymentIntent.id,
             bookingData: formData,
+            quotedDamageDepositAmount: damageDepositAmount,
           }),
         });
 
@@ -159,12 +173,30 @@ function PaymentForm({ formData, calculatedPrice, onPaymentSuccess }: {
           </Alert>
         )}
 
+        {depositReady ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            A damage deposit hold of <strong>{formatDepositAmount(damageDepositAmount!)}</strong> will be placed on your card up to 3 days before your event. If the hold is declined, your booking is cancelled and the rental fee is not refunded.
+          </Alert>
+        ) : damageDepositStatus === 'error' ? (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={<Button color="inherit" size="small" onClick={onRetryDamageDeposit}>Retry</Button>}
+          >
+            We couldn&apos;t calculate your damage deposit hold. Please retry before paying.
+          </Alert>
+        ) : (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Calculating your damage deposit hold...
+          </Alert>
+        )}
+
         <Button
           type="submit"
           variant="contained"
           size="large"
           fullWidth
-          disabled={!stripe || isProcessing}
+          disabled={!stripe || isProcessing || !depositReady}
           sx={{ py: 2 }}
         >
           {isProcessing ? 'Processing Payment...' : `Pay $${calculatedPrice}`}
@@ -211,6 +243,80 @@ export default function BookNowPage() {
   const [isFriendBookingProcessing, setIsFriendBookingProcessing] = useState(false);
   const [showRentalAgreement, setShowRentalAgreement] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [damageDepositAmount, setDamageDepositAmount] = useState<number | null>(null);
+  const [damageDepositStatus, setDamageDepositStatus] = useState<DamageDepositQuoteStatus>('idle');
+  const [damageDepositRetry, setDamageDepositRetry] = useState(0);
+
+  // Server-side damage deposit quote (tier depends on date/time and whether the
+  // renter has booked before). Fetched once the renter reaches the agreement /
+  // payment step, and refreshed if any input changes so the amount shown always
+  // matches what /api/payment-success will store.
+  const needsDamageDepositQuote = showRentalAgreement || showPaymentForm;
+  useEffect(() => {
+    if (
+      !needsDamageDepositQuote ||
+      !formData.selectedDate ||
+      (formData.bookingType === 'hourly' && !formData.startTime)
+    ) {
+      // Never leave a stale amount on screen for inputs we haven't quoted.
+      setDamageDepositStatus('idle');
+      setDamageDepositAmount(null);
+      return;
+    }
+
+    let cancelled = false;
+    setDamageDepositStatus('loading');
+    setDamageDepositAmount(null);
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/damage-deposit-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Same field values (and Date serialization) that /api/payment-success receives.
+          body: JSON.stringify({
+            bookingData: {
+              selectedDate: formData.selectedDate,
+              startTime: formData.startTime,
+              bookingType: formData.bookingType,
+              duration: formData.duration,
+              earlyAccessOption: formData.earlyAccessOption,
+              lateAccessOption: formData.lateAccessOption,
+              email: formData.email,
+              phone: formData.phone,
+            },
+          }),
+        });
+        const result = await response.json();
+        if (cancelled) return;
+        if (!response.ok || typeof result.damageDepositAmount !== 'number') {
+          throw new Error(result.error || 'Failed to calculate damage deposit');
+        }
+        setDamageDepositAmount(result.damageDepositAmount);
+        setDamageDepositStatus('ready');
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Damage deposit quote error:', error);
+        setDamageDepositStatus('error');
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    needsDamageDepositQuote,
+    damageDepositRetry,
+    formData.selectedDate,
+    formData.startTime,
+    formData.bookingType,
+    formData.duration,
+    formData.earlyAccessOption,
+    formData.lateAccessOption,
+    formData.email,
+    formData.phone,
+  ]);
 
   // Generate time options with 30-minute granularity (5 AM to 11:30 PM)
   const generateTimeOptions = () => {
@@ -822,6 +928,9 @@ export default function BookNowPage() {
                       formData={formData}
                       calculatedPrice={calculatedPrice}
                       onPaymentSuccess={handlePaymentSuccess}
+                      damageDepositAmount={damageDepositAmount}
+                      damageDepositStatus={damageDepositStatus}
+                      onRetryDamageDeposit={() => setDamageDepositRetry((n) => n + 1)}
                     />
                   </Elements>
                 </Box>
@@ -953,6 +1062,7 @@ export default function BookNowPage() {
         onAccept={handleAgreementAccept}
         formData={formData}
         calculatedPrice={calculatedPrice}
+        damageDepositAmount={damageDepositStatus === 'ready' ? damageDepositAmount : null}
       />
     </LocalizationProvider>
   );

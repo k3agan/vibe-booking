@@ -15,6 +15,7 @@ import {
   Grid
 } from '@mui/material';
 import { getBookingWindowTimeStrings } from '../../lib/booking';
+import { formatDepositAmount } from '../../lib/deposit-tiers';
 
 interface RentalAgreementProps {
   open: boolean;
@@ -22,9 +23,11 @@ interface RentalAgreementProps {
   onAccept: () => void;
   formData: any;
   calculatedPrice: number;
+  /** Server-quoted damage deposit hold; null while loading/unavailable. */
+  damageDepositAmount?: number | null;
 }
 
-export default function RentalAgreement({ open, onClose, onAccept, formData, calculatedPrice }: RentalAgreementProps) {
+export default function RentalAgreement({ open, onClose, onAccept, formData, calculatedPrice, damageDepositAmount = null }: RentalAgreementProps) {
   const formatTimeLabel = (timeString: string) => {
     const [hour, minute] = timeString.split(':').map(Number);
     return new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
@@ -113,6 +116,12 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="body2"><strong>Total Cost:</strong> ${calculatedPrice}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2">
+                  <strong>Damage Deposit Hold:</strong>{' '}
+                  {damageDepositAmount !== null ? formatDepositAmount(damageDepositAmount) : 'Shown before payment'}
+                </Typography>
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="body2"><strong>Contact Person:</strong> {formData.name || 'Renter'}</Typography>
