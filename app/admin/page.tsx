@@ -213,6 +213,7 @@ export default function AdminPage() {
       const refundAmount = parseFloat(cancelDialog.refundAmount);
       const response = await fetch('/api/admin/cancel-booking', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: cancelDialog.booking.id,
@@ -223,6 +224,10 @@ export default function AdminPage() {
 
       const data = await response.json();
 
+      if (response.status === 401) {
+        setIsAuthenticated(false);
+        setAuthError('Session expired. Sign in again before cancelling.');
+      }
       if (data.success) {
         setMessage({
           type: 'success',
@@ -240,19 +245,52 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple password check - in production, use proper authentication
-    if (password === 'capitol2024') {
-      setIsAuthenticated(true);
-      setAuthError('');
-    } else {
-      setAuthError('Invalid password');
+    try {
+      const response = await fetch('/api/admin/session', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setIsAuthenticated(true);
+        setAuthError('');
+        fetchBookings();
+      } else {
+        setAuthError(data.message || 'Unable to sign in');
+      }
+    } catch {
+      setAuthError('Unable to sign in');
+    } finally {
+      setPassword('');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/admin/session', { method: 'DELETE', credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Logout failed');
+      setIsAuthenticated(false);
+      setAdminBookings([]);
+      setBookings([]);
+      setCancelDialog({ open: false, booking: null, refundAmount: '', cancellationReason: '', cancelling: false });
+    } catch {
+      setMessage({ type: 'error', text: 'Unable to end session. Try again.' });
     }
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetch('/api/admin/session', { credentials: 'same-origin' })
+      .then(response => {
+        if (response.ok) {
+          setIsAuthenticated(true);
+          fetchBookings();
+        }
+      })
+      .catch(() => setAuthError('Unable to check session'));
   }, []);
 
   // Show login form if not authenticated
@@ -268,7 +306,7 @@ export default function AdminPage() {
               <TextField
                 fullWidth
                 type="password"
-                label="Password"
+                label="Admin credential"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 error={!!authError}
@@ -298,7 +336,7 @@ export default function AdminPage() {
         </Typography>
         <Button
           variant="outlined"
-          onClick={() => setIsAuthenticated(false)}
+          onClick={handleLogout}
         >
           Logout
         </Button>
