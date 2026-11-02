@@ -180,3 +180,10 @@ it('zero-refund path still releases a saved hold across accounts and continues c
   expect(revokeAccessCodesForBooking).toHaveBeenCalled();
   expect(sendCancellationEmail).toHaveBeenCalled();
 });
+
+it.each(['failed', 'canceled'])('does not cancel if Stripe returns a %s refund', async status => {
+  primary.refunds.create.mockResolvedValue({ id: 're_test', status });
+  await expect(cancelBooking(booking(), options(10))).rejects.toMatchObject({ status: 502 });
+  expect(updateBookingCancellation).not.toHaveBeenCalled();
+  expect(sendCancellationEmail).not.toHaveBeenCalled();
+});

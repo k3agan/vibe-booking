@@ -33,6 +33,7 @@ import {
   Error as ErrorIcon
 } from '@mui/icons-material';
 import { resolveBookingStripeAccount } from '@/lib/stripe-account-id';
+import { isValidRefundAmount } from '@/lib/refund-amount';
 
 interface Booking {
   bookingRef: string;
@@ -193,7 +194,7 @@ export default function AdminPage() {
     setCancelDialog({
       open: true,
       booking,
-      refundAmount: booking.calculated_price.toFixed(2),
+      refundAmount: '', // Blank means remaining Stripe balance, not the recorded DB price.
       cancellationReason: '',
       cancelling: false,
     });
@@ -210,14 +211,19 @@ export default function AdminPage() {
     setCancelDialog(prev => ({ ...prev, cancelling: true }));
 
     try {
-      const refundAmount = parseFloat(cancelDialog.refundAmount);
+      const refundAmount = cancelDialog.refundAmount.trim() === '' ? null : Number(cancelDialog.refundAmount);
+      if (!isValidRefundAmount(refundAmount)) {
+        setMessage({ type: 'error', text: 'Enter a non-negative CAD amount with at most two decimal places, or leave blank for the remaining Stripe balance.' });
+        setCancelDialog(prev => ({ ...prev, cancelling: false }));
+        return;
+      }
       const response = await fetch('/api/admin/cancel-booking', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: cancelDialog.booking.id,
-          refundAmount: isNaN(refundAmount) ? null : refundAmount,
+          refundAmount,
           cancellationReason: cancelDialog.cancellationReason || null,
         }),
       });
@@ -236,7 +242,9 @@ export default function AdminPage() {
         setCancelDialog({ open: false, booking: null, refundAmount: '', cancellationReason: '', cancelling: false });
         fetchAdminBookings();
       } else {
-        setMessage({ type: 'error', text: data.message || 'Failed to cancel booking' });
+        setMessage({ type: 'error', text: data.code === 'SECONDARY_ACCOUNT_REFUND_REFUSED'
+          ? `No cancellation performed. Stripe refunds on SECONDARY are disabled. Route any e-transfer refund for ${data.customerEmail} through Finance; do not retry a Stripe refund.`
+          : data.message || 'Failed to cancel booking' });
         setCancelDialog(prev => ({ ...prev, cancelling: false }));
       }
     } catch (error) {
@@ -639,9 +647,9 @@ export default function AdminPage() {
                 fullWidth
                 value={cancelDialog.refundAmount}
                 onChange={e => setCancelDialog(prev => ({ ...prev, refundAmount: e.target.value }))}
-                inputProps={{ min: 0, max: cancelDialog.booking.calculated_price, step: '0.01' }}
+                inputProps={{ min: 0, step: '0.01' }}
                 InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                helperText={`Max refundable: $${cancelDialog.booking.calculated_price.toFixed(2)} CAD. Set to 0 for no refund.`}
+                helperText={`Recorded booking price: $${cancelDialog.booking.calculated_price.toFixed(2)} CAD (not the refundable balance). Leave blank for the remaining Stripe balance; set 0 for no refund. Server verifies Stripe before refunding.`}
                 sx={{ mb: 2 }}
               />
 
@@ -659,9 +667,12 @@ export default function AdminPage() {
               {parseFloat(cancelDialog.refundAmount) > 0 && (
                 <Alert severity="warning" sx={{ mt: 1 }}>
                   This will issue a Stripe refund of <strong>${parseFloat(cancelDialog.refundAmount).toFixed(2)} CAD</strong> to the customer's original payment method.
-                  {cancelDialog.booking.calculated_price > 0 && parseFloat(cancelDialog.refundAmount) < cancelDialog.booking.calculated_price && (
-                    <> This is a <strong>partial refund</strong> (full amount: ${cancelDialog.booking.calculated_price.toFixed(2)}).</>
-                  )}
+                </Alert>
+              )}
+
+              {cancelDialog.refundAmount.trim() === '' && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  This requests a refund of the remaining Stripe balance. SECONDARY-account refunds are refused without cancelling the booking. Any e-transfer requires separate Finance handling and approval.
                 </Alert>
               )}
 

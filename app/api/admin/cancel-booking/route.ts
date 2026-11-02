@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getBookingById } from '@/lib/database';
 import { requireAdmin } from '@/lib/admin-auth';
+import { isValidRefundAmount } from '@/lib/refund-amount';
 import {
   cancelBooking,
   CancelBookingError,
@@ -9,7 +10,7 @@ import {
 } from '@/lib/cancel-booking';
 
 /**
- * Admin cancellation. The pipeline itself (refund across both Stripe accounts,
+ * Authenticated admin cancellation. The pipeline itself (PRIMARY-only refund,
  * deposit-hold release, DB, calendar, Seam door codes, email) lives in
  * lib/cancel-booking.ts so the damage-deposit cron cancels bookings the exact
  * same way.
@@ -19,13 +20,27 @@ export async function POST(request: NextRequest) {
   if (unauthorized) return unauthorized;
 
   try {
-    const { bookingId, refundAmount, cancellationReason } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, message: 'Invalid JSON body' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ success: false, message: 'Invalid cancellation request' }, { status: 400 });
+    }
+    const { bookingId, refundAmount, cancellationReason } = body;
 
-    if (!bookingId) {
+    if (typeof bookingId !== 'string' || !bookingId.trim()) {
       return NextResponse.json(
         { success: false, message: 'Booking ID is required' },
         { status: 400 }
       );
+    }
+
+    if (!isValidRefundAmount(refundAmount ?? null) ||
+        (cancellationReason != null && typeof cancellationReason !== 'string')) {
+      return NextResponse.json({ success: false, message: 'Invalid refund amount or cancellation reason' }, { status: 400 });
     }
 
     // Fetch full booking record
@@ -66,14 +81,14 @@ export async function POST(request: NextRequest) {
     let result;
     try {
       result = await cancelBooking(booking, {
-        // null/undefined = full refund (unchanged admin default)
-        refundAmount: refundAmount != null ? Number(refundAmount) : null,
+        // null/undefined = remaining captured Stripe balance, not the DB price.
+        refundAmount: refundAmount ?? null,
         cancellationReason: cancellationReason ?? null,
         cancelledBy: 'admin',
       });
     } catch (err) {
       if (err instanceof CancelBookingError) {
-        return NextResponse.json({ success: false, message: err.message }, { status: err.status });
+        return NextResponse.json({ success: false, message: err.message, ...err.details }, { status: err.status });
       }
       throw err;
     }

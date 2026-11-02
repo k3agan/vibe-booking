@@ -5,6 +5,7 @@ import { logEmailSent, updateBookingCancellation } from './database';
 import { revokeAccessCodesForBooking, RevokeAccessCodesResult } from './seam';
 import { createStripeClient, isResourceMissing, withStripeFallback } from './stripe-accounts';
 import { stripeAccountForObjectId } from './stripe-account-id';
+import { isValidRefundAmount } from './refund-amount';
 import { sendCancellationEmail } from '../app/lib/email';
 
 /**
@@ -158,6 +159,9 @@ async function refundRental(booking: Booking, opts: CancelBookingOptions): Promi
       reason: 'requested_by_customer',
       metadata: { booking_ref: booking.booking_ref, booking_id: booking.id, cancelled_by: opts.cancelledBy },
     }, { idempotencyKey: `cancellation-refund:${booking.id}` });
+    if (refund.status === 'failed' || refund.status === 'canceled') {
+      throw new CancelBookingError('Stripe did not accept the refund; booking was not cancelled', 502);
+    }
     return { id: refund.id, amount: cents / 100 };
   } catch (err) {
     if (err instanceof CancelBookingError) throw err;
@@ -174,13 +178,8 @@ export async function cancelBooking(booking: Booking, opts: CancelBookingOptions
     throw new CancelBookingError('Booking is already cancelled', 400);
   }
 
-  if (opts.refundAmount !== null) {
-    const amount = opts.refundAmount;
-    const cents = Math.round(amount * 100);
-    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 0 ||
-        !Number.isSafeInteger(cents) || Math.abs(cents / 100 - amount) > 1e-9) {
-      throw new CancelBookingError('Refund amount must be a finite, non-negative CAD number with at most two decimal places', 400);
-    }
+  if (!isValidRefundAmount(opts.refundAmount)) {
+    throw new CancelBookingError('Refund amount must be a finite, non-negative CAD number with at most two decimal places', 400);
   }
 
   let stripeRefundId: string | null = null;

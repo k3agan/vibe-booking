@@ -97,3 +97,11 @@ it('portal uses server sessions rather than embedded credentials or public env',
   expect(source).not.toMatch(/localStorage|sessionStorage/);
   expect(source).toContain("credentials: 'same-origin'");
 });
+
+it('portal does not claim DB price is the refundable Stripe balance', () => {
+  const source = readFileSync(join(__dirname, '../../app/admin/page.tsx'), 'utf8');
+  expect(source).not.toContain('Max refundable:');
+  expect(source).not.toContain('max: cancelDialog.booking.calculated_price');
+  expect(source).toContain('remaining Stripe balance');
+  expect(source).toContain('SECONDARY_ACCOUNT_REFUND_REFUSED');
+});
