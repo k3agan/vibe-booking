@@ -3,7 +3,9 @@ import { google } from 'googleapis';
 import { supabase, Booking } from './supabase';
 import { logEmailSent, updateBookingCancellation } from './database';
 import { revokeAccessCodesForBooking, RevokeAccessCodesResult } from './seam';
-import { withStripeFallback } from './stripe-accounts';
+import { createStripeClient, isResourceMissing, withStripeFallback } from './stripe-accounts';
+import { stripeAccountForObjectId } from './stripe-account-id';
+import { isValidRefundAmount } from './refund-amount';
 import { sendCancellationEmail } from '../app/lib/email';
 
 /**
@@ -17,7 +19,11 @@ import { sendCancellationEmail } from '../app/lib/email';
 
 /** A cancellation that must not proceed; `status` is the HTTP status the admin route returns. */
 export class CancelBookingError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly details?: { code: string; customerEmail?: string; stripeRefundId?: string }
+  ) {
     super(message);
     this.name = 'CancelBookingError';
   }
@@ -25,7 +31,7 @@ export class CancelBookingError extends Error {
 
 export interface CancelBookingOptions {
   /**
-   * Amount to refund in CAD. `null` = FULL refund of calculated_price (admin
+   * Amount to refund in CAD. `null` = remaining captured Stripe balance (admin
    * default); `0` = no refund (deposit-decline policy). Deliberately required
    * so no caller gets a full refund by omission.
    */
@@ -91,6 +97,98 @@ export async function clearCalendarEventId(bookingId: string): Promise<void> {
     .eq('id', bookingId);
 }
 
+function refuseSecondaryRefund(booking: Booking): never {
+  throw new CancelBookingError(
+    `Stripe refunds on the SECONDARY account are disabled. Route any e-transfer refund for ${booking.customer_email} through Finance; no cancellation was performed.`,
+    409,
+    { code: 'SECONDARY_ACCOUNT_REFUND_REFUSED', customerEmail: booking.customer_email }
+  );
+}
+
+/** Positive/default refunds never use rotated keys or a cross-account WRITE fallback. */
+async function refundRental(booking: Booking, opts: CancelBookingOptions): Promise<{ id: string; amount: number }> {
+  const intentId = booking.payment_intent_id;
+  if (!intentId) throw new CancelBookingError('No rental PaymentIntent recorded; refund cannot be verified', 409);
+  if (stripeAccountForObjectId(intentId) === 'secondary') refuseSecondaryRefund(booking);
+
+  // Do not guess whether the rotating/legacy key happens to be PRIMARY today.
+  const key = process.env.STRIPE_SECRET_KEY_PRIMARY;
+  if (!key || key === process.env.STRIPE_SECRET_KEY_SECONDARY) {
+    throw new CancelBookingError('A distinct PRIMARY Stripe key must be configured for refunds', 503);
+  }
+  const stripe = createStripeClient(key);
+  try {
+    let intent: Stripe.PaymentIntent;
+    try {
+      intent = await stripe.paymentIntents.retrieve(intentId, { expand: ['latest_charge'] });
+    } catch (err) {
+      const secondaryKey = process.env.STRIPE_SECRET_KEY_SECONDARY;
+      if (isResourceMissing(err) && !stripeAccountForObjectId(intentId) && secondaryKey) {
+        // Unknown legacy IDs may live on SECONDARY. Only look them up there;
+        // never pass a refund/cancellation callback to an account fallback.
+        await createStripeClient(secondaryKey).paymentIntents.retrieve(intentId);
+        refuseSecondaryRefund(booking);
+      }
+      throw err;
+    }
+    if (!intent || intent.id !== intentId) {
+      throw new CancelBookingError('Rental PaymentIntent identity cannot be verified; booking was not cancelled', 409);
+    }
+    if (stripeAccountForObjectId(intent.id) === 'secondary') refuseSecondaryRefund(booking);
+    if (intent.status !== 'succeeded' || intent.currency !== 'cad' || !intent.latest_charge) {
+      throw new CancelBookingError('Rental payment has no succeeded CAD charge to refund', 409);
+    }
+    const charge = typeof intent.latest_charge === 'string'
+      ? await stripe.charges.retrieve(intent.latest_charge)
+      : intent.latest_charge;
+    // Stripe retains disputed=true for accepted/lost chargebacks too. Missing
+    // or malformed dispute evidence is not proof that a refund is safe.
+    if (!charge || charge.disputed !== false) {
+      throw new CancelBookingError('Stripe charge is disputed or its dispute state cannot be verified; booking was not cancelled', 409);
+    }
+    const captured = charge.amount_captured;
+    const refunded = charge.amount_refunded;
+    if (!charge.paid || !charge.captured || charge.currency !== 'cad' ||
+        !Number.isSafeInteger(captured) || !Number.isSafeInteger(refunded) ||
+        captured < 0 || refunded < 0 || refunded > captured) {
+      throw new CancelBookingError('Stripe charge state cannot be safely refunded', 409);
+    }
+    const remaining = captured - refunded;
+    if (remaining === 0) {
+      throw new CancelBookingError('Rental payment is already fully refunded; use explicit 0 to cancel without a refund', 409);
+    }
+    const cents = opts.refundAmount === null ? remaining : Math.round(opts.refundAmount * 100);
+    if (cents > remaining) {
+      throw new CancelBookingError(`Refund exceeds remaining Stripe balance ($${(remaining / 100).toFixed(2)} CAD)`, 400);
+    }
+    const refund = await stripe.refunds.create({
+      payment_intent: intentId,
+      amount: cents,
+      reason: 'requested_by_customer',
+      metadata: { booking_ref: booking.booking_ref, booking_id: booking.id, cancelled_by: opts.cancelledBy },
+    }, { idempotencyKey: `cancellation-refund:${booking.id}` });
+    // Creation/acceptance is not success: pending, requires_action, unknown or
+    // malformed responses must never become issued-refund records or emails.
+    if (refund?.status !== 'succeeded' || typeof refund.id !== 'string' || !refund.id.trim()) {
+      throw new CancelBookingError(
+        'Stripe refund success is unverified. A refund may already exist; reconcile the payment/refund in Stripe before any retry. Booking was not cancelled.',
+        502,
+        { code: 'REFUND_RECONCILIATION_REQUIRED', ...(typeof refund?.id === 'string' && refund.id ? { stripeRefundId: refund.id } : {}) }
+      );
+    }
+    return { id: refund.id, amount: cents / 100 };
+  } catch (err) {
+    if (err instanceof CancelBookingError) throw err;
+    // Stripe remains the final guard against a concurrent external refund.
+    // Never continue cancellation on lookup/refund failure or expose raw errors.
+    throw new CancelBookingError(
+      'Stripe refund could not be verified. A refund may already exist; reconcile the payment/refund in Stripe before any retry. Booking was not cancelled.',
+      502,
+      { code: 'REFUND_RECONCILIATION_REQUIRED' }
+    );
+  }
+}
+
 export async function cancelBooking(booking: Booking, opts: CancelBookingOptions): Promise<CancelBookingResult> {
   const bookingId = booking.id;
 
@@ -98,59 +196,23 @@ export async function cancelBooking(booking: Booking, opts: CancelBookingOptions
     throw new CancelBookingError('Booking is already cancelled', 400);
   }
 
+  if (!isValidRefundAmount(opts.refundAmount)) {
+    throw new CancelBookingError('Refund amount must be a finite, non-negative CAD number with at most two decimal places', 400);
+  }
+
   let stripeRefundId: string | null = null;
   let actualRefundAmount: number | null = null;
   let damageDepositReleased = false;
 
   // ── Stripe Refund ────────────────────────────────────────────────────────
-  if (booking.payment_intent_id && booking.payment_status === 'succeeded') {
-    // Validate refund amount — never refund more than what was charged
-    const maxRefund = booking.calculated_price;
-    const requestedRefund = opts.refundAmount != null ? Number(opts.refundAmount) : maxRefund;
-
-    if (requestedRefund < 0) {
-      throw new CancelBookingError('Refund amount cannot be negative', 400);
-    }
-
-    if (requestedRefund > maxRefund) {
-      throw new CancelBookingError(
-        `Refund amount ($${requestedRefund}) exceeds the amount charged ($${maxRefund}). Cannot over-refund.`,
-        400
-      );
-    }
-
-    if (requestedRefund > 0) {
-      try {
-        const refundParams: Stripe.RefundCreateParams = {
-          payment_intent: booking.payment_intent_id,
-          amount: Math.round(requestedRefund * 100), // Convert to cents
-          reason: 'requested_by_customer',
-          metadata: {
-            booking_ref: booking.booking_ref,
-            booking_id: bookingId,
-            cancelled_by: opts.cancelledBy,
-          },
-        };
-
-        // Retry across rotated Stripe keys: the payment may have been
-        // processed under whichever account was active that day.
-        const refund = await withStripeFallback((stripe) => stripe.refunds.create(refundParams));
-        stripeRefundId = refund.id;
-        actualRefundAmount = requestedRefund;
-        console.log(`✅ Stripe refund created: ${refund.id} for $${requestedRefund}`);
-      } catch (stripeError) {
-        console.error('Stripe refund failed:', stripeError);
-        throw new CancelBookingError(
-          `Stripe refund failed: ${stripeError instanceof Error ? stripeError.message : 'Unknown error'}`,
-          500
-        );
-      }
-    }
-  } else if (booking.payment_status === 'comped') {
-    // Comped bookings: cancel without any Stripe calls
-    console.log('Comped booking — skipping Stripe refund');
-  } else if (booking.payment_status === 'cancelled') {
-    throw new CancelBookingError('Payment already cancelled for this booking', 400);
+  // A DB flag is not payment truth. Any recorded rental PI must be verified
+  // for nonzero/default requests, even if the local flag says failed/comped/etc.
+  // Only explicit zero OR a genuinely comped record with no rental PI may skip.
+  const compedWithoutRental = booking.payment_status === 'comped' && booking.payment_intent_id == null;
+  if (opts.refundAmount !== 0 && !(compedWithoutRental && opts.refundAmount === null)) {
+    const refund = await refundRental(booking, opts);
+    stripeRefundId = refund.id;
+    actualRefundAmount = refund.amount;
   }
 
   // ── Release Damage Deposit Hold ──────────────────────────────────────────
