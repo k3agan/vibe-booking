@@ -2,7 +2,7 @@
 
 Review context: https://github.com/k3agan/chh-ops/issues/10. This document describes local code, not verified production configuration. No worker production calls, refunds, cancellations, secret provisioning or manual deployment were performed. The existing GitHub/Vercel integration automatically runs preview checks on branch pushes; those are not worker production/deploy tests.
 
-PR #6 remains DRAFT after blocking independent review of `38f51e69dcec151c07302399253fd070b7dad6e5`. The earlier 175-test completion claim is superseded. Corrected source and committed route/pipeline regressions address dispute evidence, unverified refund outcomes and stale payment flags; parent must independently re-review before draft status changes. Local green tests are not independent acceptance or production approval.
+PR #6 remains INTERNAL DRAFT. Prior local green/completion wording is superseded by independent D1 post-effect review and its same-branch correction. The provider now preserves known refund receipts and cancellation uncertainty on DB splits; see `docs/agent-checkpoints/engineer-issue10-post-effect.md`. CoS must independently review exact provider + required Finance #40 consumer heads for every original #10 criterion before any publication. Specialists must not create/edit/release PRs or notify Keagan of completion. No local test count is whole-issue acceptance or production approval.
 
 ## Authentication
 
@@ -32,7 +32,31 @@ On PRIMARY, retrieve the rental PaymentIntent and latest charge. Require the ret
 
 Refunds use the unchanged stable per-booking Stripe idempotency key. Only an explicitly `succeeded` refund with a nonblank identity can produce successful-refund records/messages and continue cancellation. Pending/requires_action/failed/canceled/null/missing/unknown/malformed outcomes return HTTP 502 `REFUND_RECONCILIATION_REQUIRED`, with `stripeRefundId` when available. No deposit release, DB cancellation/refund success record, calendar/access cleanup or email occurs on that response. The route returns `success: false`, does not claim `refundIssued: true`, and the portal displays the server's reconciliation message rather than a success message.
 
-A Stripe refund write may ALREADY have occurred before an unresolved response/timeout. A 502 is not evidence that no money moved. Stop and reconcile the rental payment/refund in Stripe through authorized Finance handling BEFORE any retry; never automatically retry, request 0 to work around it, or create a second refund. This fail-closed proposal does not persist an unresolved-refund ledger or automatically resume cancellation when a pending refund later succeeds. Refund/DB split failure also requires reconciliation; there is no distributed transaction. Stripe remains the final guard against concurrent refunds; even Stripe success is not a promise of the renter's bank posting time. Existing best-effort cleanup behavior after verified success is unchanged.
+A Stripe refund write may ALREADY have occurred before an unresolved response/timeout. A 502 is not evidence that no money moved. Stop and reconcile the rental payment/refund in Stripe through authorized Finance handling BEFORE any retry; never automatically retry, request 0 to work around it, or create a second refund. This proposal does not persist an unresolved-refund ledger, make external effects atomic, or automatically resume cancellation. Stripe success is not a promise of the renter's bank posting time.
+
+### Post-effect truth: issued refund is not proof of cancellation
+
+For a verified succeeded refund followed by a **throw OR null** from the conditional cancellation DB write, the authenticated route returns **HTTP 502** with these top-level fields:
+
+| Field | Value / meaning |
+|---|---|
+| `success` | `false`: pipeline incomplete, **not** no financial effect |
+| `code` | `REFUND_RECONCILIATION_REQUIRED` |
+| `reconciliationRequired` | `true` |
+| `refundIssued` / `refundStatus` | `true` / `"succeeded"`: verified Stripe result, not bank settlement |
+| `stripeRefundId` | Exact verified refund ID |
+| `refundAmount` | Actual refunded CAD number (default remaining or explicit partial), not DB price |
+| `cancellationStatus` | `"unknown"`: throw may follow commit/response loss; null may be a race; neither establishes saved cancellation/refund state |
+| `damageDepositReleased` | `true` only on verified successful hold-release call; `false` means not verified released, not proof no external effect |
+| `cancellationEmailStatus` | `"not_attempted"` |
+
+The message includes known refund ID/amount, explicitly unverified cancellation, and reconciliation **before any retry**. Calendar/access/email do not run. Never turn this into "nothing happened", "already cancelled", a cancellation success, a retry with zero or another refund. Examples in `docs/admin-cancellation-post-effect-contract.json` are synthetic fixtures asserted against the real POST/pipeline in `lib/__tests__/domain-independent.test.ts`.
+
+A **no-rental-refund** path (deliberate zero or truly comped/no-PI default) with a DB split returns 502 `CANCELLATION_RECONCILIATION_REQUIRED`, `refundIssued:false`, `refundStatus:"not_requested"`, `refundAmount:null`, `stripeRefundId:null` and the same cancellation uncertainty. It still may have released a deposit hold; it is not proof of no effects.
+
+An **unexpected thrown exception after DB cancellation returned a row** retains the same financial receipt, with `cancellationStatus:"cancelled"` and `cancellationEmailStatus` one of `not_attempted`, `unknown` (send threw), `sent` (provider reported success before audit failure), or `failed` (provider reported failure before audit exception). Sent is not relabelled failed or resent. Known best-effort calendar failures and access-code error results continue to use existing success-response cleanup fields; they never undo cancellation/refund. An email provider acceptance is not proof of delivery. Existing email helper/audit helper failures returned as values rather than thrown remain best-effort; this change does not create a durable notification ledger.
+
+**Authorized reconciliation, not automatic recovery:** separately verify the rental PaymentIntent/refund ID/amount/status and saved booking/refund fields, then any deposit/calendar/access/email/audit state. Preserve the response in restricted operator evidence and resolve any unknown send before considering resend. Financial approval and any subsequent action remain separate. Stable per-booking Stripe/email idempotency keys and money-before-DB-before-cleanup ordering are retained, but are not a distributed transaction or an indefinite replay guarantee. A process crash or lost HTTP response can still lose the in-memory receipt: unknown caller outcomes always require reconciliation before retry. Do not infer safety from an expired idempotency retention window or the current remaining balance.
 
 A 409 refusal does NOT automatically cancel, initiate e-transfer, change payment/refund records, release deposits or contact the renter. An explicit zero-refund cancellation remains available only when independently intended and authorized; it is not an automatic retry strategy for a refused refund.
 

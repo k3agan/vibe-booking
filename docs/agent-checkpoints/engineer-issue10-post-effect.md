@@ -72,3 +72,47 @@ does not claim a null return proves the competing cancellation/refund state.
 
 This is local provider evidence only. #40 must test the exact corrected head and
 actual produced fields; whole #10 and independent CoS acceptance remain pending.
+
+## Durable source / final offline evidence
+
+RED `61c7411cd3c3ef84e7248da792c29c9b83481e2c` and production-source GREEN
+`2ee659b1d62c4e4b822c55b0710d682b80b9a890` were individually pushed to the SAME
+branch and read back remote-equal. Later work is docs/offline harness/evidence
+only. Actual observed DB throw/null JSON bodies and machine execution records
+are committed in `engineer-issue10-post-effect-results.json`; no fabricated API
+response is used in place of execution.
+
+- Explicit original-bundle rerun:
+  `.../python scripts/verify-cancellation-offline.py d1-committed-original-306 --testPathIgnorePatterns domain-independent.test.ts`
+  => **306 passed / 10 suites**, exit 0, network denied.
+- Final full bundle:
+  `.../python scripts/verify-cancellation-offline.py d1-final-full`
+  => **321 passed / 11 suites**, exit 0, network denied.
+- Final typecheck:
+  `.../python scripts/verify-cancellation-offline.py d1-final-types --typecheck`
+  => exit 0, network denied.
+- Fresh optimized build:
+  `.../python scripts/verify-cancellation-build-offline.py /Users/k3/.hermes/cache/scratch/chh-cos-fanout-20261102T002457Z/engineer-font-cache.json`
+  => exit 0, **51/51 static pages**. Existing real public font cache read-only;
+  no download/install. Build runs with synthetic placeholders, no local env
+  files/live keys, network denied, HOME/TMPDIR/output confined to this tree.
+  **101 client artifacts scanned, zero canary/server-secret-marker matches**.
+  Asset hashes and exact command are in the committed execution evidence.
+- Existing unconfigured lint remains **NOT RUN**, not relabelled a pass.
+
+Provider contract/source head also posted/read back at:
+- https://github.com/k3agan/chh-ops/issues/10#issuecomment-6567554663
+- https://github.com/k3agan/chh-ops/issues/40#issuecomment-6567554375
+
+Finance #40 is concurrently exercising its own actual archived provider to real
+CLI subprocess integration. Its active tree was only inspected read-only for
+contract coordination; this provider handoff does not certify that consumer or
+sum its tests. CoS needs its exact final head/evidence separately. PR6 was read
+back OPEN/DRAFT at source head above; no PR mutation performed.
+
+Remaining limits: CoS whole-original-criterion/domain/robustness/polish acceptance
+and independent reviewers at exact provider/consumer heads; separately authorized
+server-only secret wiring, PRIMARY ownership, production origin/proxy/rate-limit
+validation and any live financial/booking/readback action. No production reads,
+money, sends, jobs/services/config/profile/access/credential changes, install,
+deployment, merge, Kanban, other-tree writes or notification of readiness.
