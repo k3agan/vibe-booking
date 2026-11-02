@@ -17,12 +17,28 @@ import { sendCancellationEmail } from '../app/lib/email';
  *   event → revoke Seam door codes → renter cancellation email
  */
 
-/** A cancellation that must not proceed; `status` is the HTTP status the admin route returns. */
+export type CancellationEmailStatus = 'not_attempted' | 'unknown' | 'sent' | 'failed';
+
+/** Receipt of known effects, not a transaction or permission to retry. */
+export interface CancellationErrorDetails {
+  code: string;
+  customerEmail?: string;
+  stripeRefundId?: string | null;
+  refundAmount?: number | null;
+  refundIssued?: boolean;
+  refundStatus?: 'succeeded' | 'not_requested';
+  reconciliationRequired?: boolean;
+  cancellationStatus?: 'unknown' | 'cancelled';
+  damageDepositReleased?: boolean;
+  cancellationEmailStatus?: CancellationEmailStatus;
+}
+
+/** `success:false` can include completed financial effects; inspect details. */
 export class CancelBookingError extends Error {
   constructor(
     message: string,
     public readonly status: number,
-    public readonly details?: { code: string; customerEmail?: string; stripeRefundId?: string }
+    public readonly details?: CancellationErrorDetails
   ) {
     super(message);
     this.name = 'CancelBookingError';
@@ -227,34 +243,69 @@ export async function cancelBooking(booking: Booking, opts: CancelBookingOptions
     }
   }
 
+  // Preserve this in-memory receipt across every later failure. A DB exception
+  // (including response loss after commit) or null conditional update cannot
+  // establish the persisted cancellation/refund state. Do not retry or infer it.
+  let cancellationEmailStatus: CancellationEmailStatus = 'not_attempted';
+  function reconciliationError(cancellationStatus: 'unknown' | 'cancelled'): CancelBookingError {
+    const refundIssued = stripeRefundId !== null;
+    const financialEffect = refundIssued
+      ? `Stripe refund ${stripeRefundId} of $${actualRefundAmount!.toFixed(2)} CAD succeeded.`
+      : 'No rental refund was requested.';
+    const localState = cancellationStatus === 'unknown'
+      ? 'Local cancellation state is unverified; cleanup and email were not attempted.'
+      : `Local cancellation was recorded, but later cleanup or email/audit work is unresolved (email: ${cancellationEmailStatus}).`;
+    return new CancelBookingError(
+      `${financialEffect} ${localState} Reconcile the payment/refund, booking and remaining actions before any retry; do not retry automatically or switch to zero.`,
+      502,
+      {
+        code: refundIssued ? 'REFUND_RECONCILIATION_REQUIRED' : 'CANCELLATION_RECONCILIATION_REQUIRED',
+        reconciliationRequired: true,
+        refundIssued,
+        refundStatus: refundIssued ? 'succeeded' : 'not_requested',
+        refundAmount: actualRefundAmount,
+        stripeRefundId,
+        cancellationStatus,
+        damageDepositReleased,
+        cancellationEmailStatus,
+      }
+    );
+  }
+
   // ── Update DB ────────────────────────────────────────────────────────────
-  const updatedBooking = await updateBookingCancellation(bookingId, {
-    stripeRefundId,
-    refundAmount: actualRefundAmount,
-    cancellationReason: opts.cancellationReason,
-    damageDepositReleased,
-  });
-  if (!updatedBooking) {
-    // Someone else cancelled it between our read and this write — stop here so
-    // the calendar/door-code/email steps aren't run twice.
-    throw new CancelBookingError('Booking is already cancelled', 400);
-  }
-
-  // ── Remove Calendar Event ────────────────────────────────────────────────
-  // Free the date on the public availability view. Non-blocking: refund + DB
-  // are already done, so a calendar hiccup must not fail the request.
-  const calendarEventDeleted = await deleteCalendarEvent(booking.calendar_event_id);
-  if (calendarEventDeleted && booking.calendar_event_id) {
-    await clearCalendarEventId(bookingId);
-  }
-
-  // ── Revoke Door Codes ────────────────────────────────────────────────────
-  // A cancelled booking must never keep working door codes. Never throws.
-  const accessCodes = await revokeAccessCodesForBooking(booking.customer_name, booking.selected_date);
-
-  // ── Send Cancellation Email ──────────────────────────────────────────────
-  let cancellationEmailSent = false;
+  let updatedBooking: Booking | null;
   try {
+    updatedBooking = await updateBookingCancellation(bookingId, {
+      stripeRefundId,
+      refundAmount: actualRefundAmount,
+      cancellationReason: opts.cancellationReason,
+      damageDepositReleased,
+    });
+  } catch {
+    // Never turn an already-issued refund into a generic pre-effect failure.
+    throw reconciliationError('unknown');
+  }
+  if (!updatedBooking) {
+    // A concurrent cancellation is possible, not verified by this null result.
+    // Retain the refund receipt and stop before duplicate cleanup/email.
+    throw reconciliationError('unknown');
+  }
+
+  try {
+    // ── Remove Calendar Event ──────────────────────────────────────────────
+    // Known best-effort calendar failures remain separate false results.
+    const calendarEventDeleted = await deleteCalendarEvent(booking.calendar_event_id);
+    if (calendarEventDeleted && booking.calendar_event_id) {
+      await clearCalendarEventId(bookingId);
+    }
+
+    // ── Revoke Door Codes ──────────────────────────────────────────────────
+    const accessCodes = await revokeAccessCodesForBooking(booking.customer_name, booking.selected_date);
+
+    // ── Send Cancellation Email ────────────────────────────────────────────
+    // A thrown send may have reached the provider. An audit-write failure after
+    // success must not relabel a sent message as failed or trigger another send.
+    cancellationEmailStatus = 'unknown';
     const emailResult = await sendCancellationEmail(
       {
         customerName: booking.customer_name,
@@ -267,31 +318,25 @@ export async function cancelBooking(booking: Booking, opts: CancelBookingOptions
       },
       { idempotencyKey: `booking-cancelled:${bookingId}` }
     );
-
+    cancellationEmailStatus = emailResult.success ? 'sent' : 'failed';
     if (emailResult.success) {
-      cancellationEmailSent = true;
       await logEmailSent(bookingId, 'cancellation', booking.customer_email, 'sent');
     } else {
       await logEmailSent(bookingId, 'cancellation', booking.customer_email, 'failed', emailResult.error);
     }
-  } catch (emailError) {
-    console.error('Error sending cancellation email:', emailError);
-    await logEmailSent(
-      bookingId,
-      'cancellation',
-      booking.customer_email,
-      'failed',
-      emailError instanceof Error ? emailError.message : 'Unknown error'
-    );
-  }
 
-  return {
-    booking: updatedBooking,
-    refundAmount: actualRefundAmount,
-    stripeRefundId,
-    damageDepositReleased,
-    calendarEventDeleted,
-    accessCodes,
-    cancellationEmailSent,
-  };
+    return {
+      booking: updatedBooking,
+      refundAmount: actualRefundAmount,
+      stripeRefundId,
+      damageDepositReleased,
+      calendarEventDeleted,
+      accessCodes,
+      cancellationEmailSent: cancellationEmailStatus === 'sent',
+    };
+  } catch {
+    // DB cancellation is known complete: report it separately from cleanup,
+    // preserving both the financial receipt and the known email outcome.
+    throw reconciliationError('cancelled');
+  }
 }

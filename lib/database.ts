@@ -398,7 +398,7 @@ export async function updateBookingCancellation(
     cancellationReason?: string | null
     damageDepositReleased?: boolean
   } = {}
-) {
+): Promise<Booking | null> {
   const updatePayload: Record<string, unknown> = {
     status: 'cancelled',
     payment_status: 'cancelled',
@@ -427,8 +427,9 @@ export async function updateBookingCancellation(
     throw new Error(`Failed to update booking cancellation: ${error.message}`)
   }
 
-  // null = the booking was already cancelled by someone else.
-  return (data as Booking) ?? null
+  // null = no row was returned from this conditional write; a concurrent
+  // cancellation is possible, but its stored refund state is not established.
+  return (data as Booking | null) ?? null
 }
 
 export async function getBookingById(bookingId: string) {

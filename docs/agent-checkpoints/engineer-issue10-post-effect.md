@@ -38,5 +38,37 @@ DB/Stripe/email/Calendar/Seam access or other-tree writes.
   => exit **1**, **13 failed / 2 passed**, 15 cases, before implementation.
 
 RED is deliberately failing regression evidence, not acceptance. No production
-source has changed in this first milestone; next correction preserves known
-receipt/cancellation uncertainty and stopped downstream effects without retries.
+source changed in that first milestone.
+
+## Implementation GREEN milestone
+
+`lib/cancel-booking.ts` now retains the verified refund ID/actual CAD amount and
+known deposit-release result when the conditional cancellation write throws or
+returns null. Both return HTTP502 `REFUND_RECONCILIATION_REQUIRED`,
+`refundIssued:true`, `refundStatus:succeeded`, `reconciliationRequired:true`,
+`cancellationStatus:unknown`, `cancellationEmailStatus:not_attempted`. It stops
+before calendar/access/email and requires reconciliation BEFORE retry. Explicit
+zero has no invented receipt and uses `CANCELLATION_RECONCILIATION_REQUIRED`.
+An unexpected later cleanup/send/audit exception retains the receipt and verified
+`cancellationStatus:cancelled`; email status differentiates not_attempted,
+unknown, sent and failed. A sent email followed by an audit exception is not
+reclassified failed or retried. Stable Stripe/email idempotency keys and ordering
+are unchanged; no auto-retry, persistence layer or distributed transaction added.
+The existing authenticated route already propagates structured error details.
+
+`lib/database.ts` explicitly types the conditional return `Booking | null` and
+does not claim a null return proves the competing cancellation/refund state.
+
+- `.../python scripts/verify-cancellation-offline.py d1-green-full` => exit **0**,
+  **321 passed / 11 suites**, no failures. Includes all 306 previous committed
+  tests plus the 15 new domain/wire/order/error tests. Counts overlap earlier
+  historical 306/368/reviewer runs and are never summed.
+- First typecheck found the original database helper inferred a non-null Booking
+  despite its null runtime path. The explicit nullable signature fixes that
+  mismatch without casting away the independent null regressions.
+- `.../python scripts/verify-cancellation-offline.py d1-green-types-fixed --typecheck`
+  => exit **0** (`node .../typescript/bin/tsc --noEmit --incremental false`, network denied).
+- `git diff --check` => exit **0**.
+
+This is local provider evidence only. #40 must test the exact corrected head and
+actual produced fields; whole #10 and independent CoS acceptance remain pending.
