@@ -145,7 +145,8 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
-            FULL RENTAL BALANCE to be paid at the time of booking. The Association will place a damage deposit hold on the Renter&apos;s card before the event. The hold is 50% of the Rental Fee for bookings on Monday to Thursday that end by 6:00 p.m. For bookings on a Friday, Saturday or Sunday, or that end after 6:00 p.m. on any day, the hold is 150% of the Rental Fee for new Renters and 100% of the Rental Fee for returning Renters (Renters with a previous completed booking at the Hall), with a minimum of $500. 
+            FULL RENTAL BALANCE to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary. 
+            DAMAGE DEPOSIT: A hold for the deposit amount is placed on the card used to book, up to 4 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded. 
             Notice of cancellation must be received 21 days in advance of the event or function to receive a refund. 
             The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
           </Typography>

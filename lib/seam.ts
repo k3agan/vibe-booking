@@ -102,7 +102,7 @@ export async function createAccessCode(bookingData: {
     // Create access code for main door via Seam API
     const accessCode = await seam.accessCodes.create({
       device_id: LOCK_ID,
-      name: `${bookingData.customerName} - ${bookingData.selectedDate}`,
+      name: accessCodeNameForBooking(bookingData.customerName, bookingData.selectedDate),
       code: undefined, // Let Seam generate the code
       starts_at: accessCodeStart.toISOString(),
       ends_at: accessCodeEnd.toISOString(),
@@ -119,7 +119,7 @@ export async function createAccessCode(bookingData: {
       try {
         await seam.accessCodes.create({
           device_id: KITCHEN_LOCK_ID,
-          name: `${bookingData.customerName} - ${bookingData.selectedDate}`,
+          name: accessCodeNameForBooking(bookingData.customerName, bookingData.selectedDate),
           code: accessCode.code, // Use the same PIN as main door
           starts_at: accessCodeStart.toISOString(),
           ends_at: accessCodeEnd.toISOString(),
@@ -146,50 +146,85 @@ export async function createAccessCode(bookingData: {
   }
 }
 
+/** Name given to every access code created for a booking (see createAccessCode). */
+export function accessCodeNameForBooking(customerName: string, selectedDate: string): string {
+  return `${customerName} - ${selectedDate}`;
+}
+
+export interface RevokeAccessCodesResult {
+  revoked: number;
+  errors: string[];
+  skipped?: string;
+}
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Revoke every Seam access code for a booking on every lock in the workspace
+ * (all devices that support access codes, plus SEAM_LOCK_ID / SEAM_KITCHEN_LOCK_ID).
+ * Codes are matched by their exact name "<customer_name> - <selected_date>".
+ * Never throws — failures are returned in `errors` so callers can alert.
+ */
+export async function revokeAccessCodesForBooking(
+  customerName: string,
+  selectedDate: string
+): Promise<RevokeAccessCodesResult> {
+  if (!process.env.SEAM_API_KEY) {
+    return { revoked: 0, errors: [], skipped: 'SEAM_API_KEY not configured' };
+  }
+
+  const codeName = accessCodeNameForBooking(customerName, selectedDate).trim().toLowerCase();
+  const errors: string[] = [];
+  const deviceIds = new Set([LOCK_ID, KITCHEN_LOCK_ID].filter(Boolean));
+
+  try {
+    const devices = await seam.createPaginator(seam.devices.list()).flattenToArray();
+    for (const device of devices) {
+      if (device.capabilities_supported?.includes('access_code')) deviceIds.add(device.device_id);
+    }
+  } catch (err) {
+    errors.push(`devices.list: ${errMsg(err)}`);
+  }
+
+  let revoked = 0;
+  for (const deviceId of deviceIds) {
+    try {
+      const codes = await seam
+        .createPaginator(seam.accessCodes.list({ device_id: deviceId }))
+        .flattenToArray();
+      for (const code of codes) {
+        if ((code.name ?? '').trim().toLowerCase() !== codeName) continue;
+        try {
+          await seam.accessCodes.delete({ access_code_id: code.access_code_id });
+          console.log(`✅ Revoked access code "${code.name}" (device ${deviceId})`);
+          revoked++;
+        } catch (err) {
+          errors.push(`delete ${code.access_code_id} on ${deviceId}: ${errMsg(err)}`);
+        }
+      }
+    } catch (err) {
+      errors.push(`accessCodes.list ${deviceId}: ${errMsg(err)}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error(`❌ Access code revocation for "${codeName}" had errors:`, errors);
+  }
+  return { revoked, errors };
+}
+
 /**
  * Deletes access codes for a specific booking from all locks
  * This is useful when a booking date/time is modified
  */
 export async function deleteAccessCodesForBooking(customerName: string, oldDate: string): Promise<void> {
-  if (!process.env.SEAM_API_KEY || !LOCK_ID) {
-    console.log('Seam credentials not configured, skipping access code deletion');
-    return;
-  }
-
-  const lockIds = [LOCK_ID, KITCHEN_LOCK_ID].filter(Boolean);
-  let totalDeleted = 0;
-
-  for (const lockId of lockIds) {
-    try {
-      // List all access codes for the lock
-      const accessCodesResponse = await seam.accessCodes.list({
-        device_id: lockId,
-      });
-
-      // Find codes that match the customer name and old date
-      const codesToDelete = (accessCodesResponse as any).access_codes?.filter((code: any) => 
-        code.name?.includes(`${customerName} - ${oldDate}`)
-      ) || [];
-
-      // Delete matching codes
-      for (const code of codesToDelete) {
-        try {
-          await seam.accessCodes.delete({
-            access_code_id: code.access_code_id,
-          });
-          console.log(`✅ Deleted old access code: ${code.name} (lock: ${lockId})`);
-          totalDeleted++;
-        } catch (error) {
-          console.error(`❌ Failed to delete access code ${code.name}:`, error);
-        }
-      }
-    } catch (error) {
-      console.error(`❌ Error cleaning up access codes for lock ${lockId}:`, error);
-    }
-  }
-
-  if (totalDeleted > 0) {
-    console.log(`🗑️ Cleaned up ${totalDeleted} old access codes for ${customerName}`);
+  const result = await revokeAccessCodesForBooking(customerName, oldDate);
+  if (result.skipped) {
+    console.log(`Seam not configured (${result.skipped}), skipping access code deletion`);
+  } else if (result.revoked > 0) {
+    console.log(`🗑️ Cleaned up ${result.revoked} old access codes for ${customerName}`);
   }
 }
 

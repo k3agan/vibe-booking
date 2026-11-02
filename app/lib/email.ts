@@ -762,14 +762,15 @@ export async function sendDamageDepositAuthNotification(data: {
   eventDate: string;
   damageDepositAmount: number;
   eventType: string;
-}) {
+}, options: { idempotencyKey?: string } = {}) {
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [data.customerEmail],
       subject: `Damage Deposit Hold Placed - ${data.bookingRef}`,
       html: generateDamageDepositEmailHTML(data),
-    });
+    }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
+    if (error) throw new Error(error.message);
 
     console.log('Damage deposit notification email sent successfully');
     return { success: true };
@@ -1269,16 +1270,17 @@ export async function sendCancellationEmail(data: {
   eventType: string;
   refundAmount: number | null;
   cancellationReason?: string | null;
-}) {
+}, options: { idempotencyKey?: string } = {}) {
   try {
     const adminEmail = 'info@caphillhall.ca';
 
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: 'Capitol Hill Hall <info@caphillhall.ca>',
       to: [data.customerEmail, adminEmail],
       subject: `Booking Cancelled – ${data.bookingRef}`,
       html: generateCancellationEmailHTML(data),
-    });
+    }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
+    if (error) throw new Error(error.message);
 
     console.log('Cancellation email sent successfully');
     return { success: true };
@@ -1375,4 +1377,62 @@ function generateCancellationEmailHTML(data: {
     </body>
     </html>
   `;
+}
+
+// ─── Admin Alerts ────────────────────────────────────────────────────────────
+
+/** Who gets operational alerts (deposit declines, failed holds, watchdog). */
+export const ADMIN_ALERT_RECIPIENTS = [
+  'kathy@caphillhall.ca',
+  'k3agan@gmail.com',
+  'info@caphillhall.ca',
+];
+
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[<>&"']/g, (c) =>
+    ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c] ?? c)
+  );
+}
+
+/** Two-column label/value table for alert emails. Values are escaped. */
+export function alertDetailsTable(rows: Array<[string, unknown]>): string {
+  const body = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 12px 4px 0;font-weight:bold;vertical-align:top;">${escapeHtml(label)}</td>` +
+        `<td style="padding:4px 0;">${escapeHtml(value)}</td></tr>`
+    )
+    .join('');
+  return `<table style="border-collapse:collapse;font-size:14px;">${body}</table>`;
+}
+
+/**
+ * Send an operational alert to ADMIN_ALERT_RECIPIENTS. `html` is trusted
+ * (build it with escapeHtml / alertDetailsTable). Pass an idempotencyKey so a
+ * re-run of the same cron on the same day can't send the same alert twice
+ * (Resend keeps keys for 24h).
+ */
+export async function sendAdminAlertEmail(alert: {
+  subject: string;
+  html: string;
+  idempotencyKey?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await resend.emails.send(
+      {
+        from: 'Capitol Hill Hall System <info@caphillhall.ca>',
+        to: ADMIN_ALERT_RECIPIENTS,
+        subject: alert.subject,
+        html: `<div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">${alert.html}
+          <p style="color:#888;font-size:12px;margin-top:24px;">Automated alert from the Capitol Hill Hall booking system.</p></div>`,
+      },
+      alert.idempotencyKey ? { idempotencyKey: alert.idempotencyKey } : undefined
+    );
+    if (error) throw new Error(error.message);
+    console.log(`📧 Admin alert sent: ${alert.subject}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`❌ Failed to send admin alert "${alert.subject}":`, error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }

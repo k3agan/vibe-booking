@@ -32,6 +32,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon
 } from '@mui/icons-material';
+import { resolveBookingStripeAccount } from '@/lib/stripe-account-id';
 
 interface Booking {
   bookingRef: string;
@@ -58,6 +59,9 @@ interface AdminBooking {
   calculated_price: number;
   status: string;
   created_at: string;
+  payment_intent_id?: string | null;
+  payment_method_id?: string | null;
+  stripe_account?: string | null;
 }
 
 interface CancelDialogState {
@@ -517,6 +521,7 @@ export default function AdminPage() {
                       <TableCell>Date & Time</TableCell>
                       <TableCell>Guests</TableCell>
                       <TableCell>Price</TableCell>
+                      <TableCell>Stripe acct</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Actions</TableCell>
                     </TableRow>
@@ -548,6 +553,7 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell>{booking.guest_count}</TableCell>
                         <TableCell>${booking.calculated_price.toFixed(2)}</TableCell>
+                        <TableCell>{resolveBookingStripeAccount(booking) ?? '—'}</TableCell>
                         <TableCell>
                           <Chip 
                             label={booking.status}
