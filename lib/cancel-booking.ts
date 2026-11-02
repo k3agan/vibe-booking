@@ -22,7 +22,7 @@ export class CancelBookingError extends Error {
   constructor(
     message: string,
     public readonly status: number,
-    public readonly details?: { code: string; customerEmail: string }
+    public readonly details?: { code: string; customerEmail?: string; stripeRefundId?: string }
   ) {
     super(message);
     this.name = 'CancelBookingError';
@@ -164,15 +164,25 @@ async function refundRental(booking: Booking, opts: CancelBookingOptions): Promi
       reason: 'requested_by_customer',
       metadata: { booking_ref: booking.booking_ref, booking_id: booking.id, cancelled_by: opts.cancelledBy },
     }, { idempotencyKey: `cancellation-refund:${booking.id}` });
-    if (refund.status === 'failed' || refund.status === 'canceled') {
-      throw new CancelBookingError('Stripe did not accept the refund; booking was not cancelled', 502);
+    // Creation/acceptance is not success: pending, requires_action, unknown or
+    // malformed responses must never become issued-refund records or emails.
+    if (refund?.status !== 'succeeded' || typeof refund.id !== 'string' || !refund.id.trim()) {
+      throw new CancelBookingError(
+        'Stripe refund success is unverified. A refund may already exist; reconcile the payment/refund in Stripe before any retry. Booking was not cancelled.',
+        502,
+        { code: 'REFUND_RECONCILIATION_REQUIRED', ...(typeof refund?.id === 'string' && refund.id ? { stripeRefundId: refund.id } : {}) }
+      );
     }
     return { id: refund.id, amount: cents / 100 };
   } catch (err) {
     if (err instanceof CancelBookingError) throw err;
     // Stripe remains the final guard against a concurrent external refund.
     // Never continue cancellation on lookup/refund failure or expose raw errors.
-    throw new CancelBookingError('Stripe refund could not be verified or issued; booking was not cancelled. Check Stripe before retrying.', 502);
+    throw new CancelBookingError(
+      'Stripe refund could not be verified. A refund may already exist; reconcile the payment/refund in Stripe before any retry. Booking was not cancelled.',
+      502,
+      { code: 'REFUND_RECONCILIATION_REQUIRED' }
+    );
   }
 }
 
