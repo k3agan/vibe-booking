@@ -1,0 +1,52 @@
+{
+  "scope": "Synthetic provider response fixtures for original chh-ops #10 / companion #40; not live records or settlement evidence",
+  "httpStatus": 502,
+  "dbUnknownAfterRefund": {
+    "success": false,
+    "code": "REFUND_RECONCILIATION_REQUIRED",
+    "reconciliationRequired": true,
+    "refundIssued": true,
+    "refundStatus": "succeeded",
+    "refundAmount": 100,
+    "stripeRefundId": "re_test",
+    "cancellationStatus": "unknown",
+    "damageDepositReleased": true,
+    "cancellationEmailStatus": "not_attempted"
+  },
+  "cleanupUnknownAfterCancellation": {
+    "success": false,
+    "code": "REFUND_RECONCILIATION_REQUIRED",
+    "reconciliationRequired": true,
+    "refundIssued": true,
+    "refundStatus": "succeeded",
+    "refundAmount": 100,
+    "stripeRefundId": "re_test",
+    "cancellationStatus": "cancelled",
+    "damageDepositReleased": true,
+    "cancellationEmailStatus": "not_attempted"
+  },
+  "emailAuditFailureAfterSend": {
+    "success": false,
+    "code": "REFUND_RECONCILIATION_REQUIRED",
+    "reconciliationRequired": true,
+    "refundIssued": true,
+    "refundStatus": "succeeded",
+    "refundAmount": 100,
+    "stripeRefundId": "re_test",
+    "cancellationStatus": "cancelled",
+    "damageDepositReleased": true,
+    "cancellationEmailStatus": "sent"
+  },
+  "dbUnknownWithoutRefund": {
+    "success": false,
+    "code": "CANCELLATION_RECONCILIATION_REQUIRED",
+    "reconciliationRequired": true,
+    "refundIssued": false,
+    "refundStatus": "not_requested",
+    "refundAmount": null,
+    "stripeRefundId": null,
+    "cancellationStatus": "unknown",
+    "damageDepositReleased": true,
+    "cancellationEmailStatus": "not_attempted"
+  }
+}
