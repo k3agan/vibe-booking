@@ -4,7 +4,7 @@ import { sendBookingConfirmation } from '../../lib/email';
 import {
   calculateBookingPriceWithSurcharges,
   calculateEventTimes,
-  validateBookingTimes
+  validateNewBookingTimes
 } from '../../../lib/booking';
 import { createCalendarEventForBooking } from '../../../lib/booking-server';
 import { validateAndConsumeDiscountCode } from '../../../lib/discount-codes';
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required booking fields' }, { status: 400 });
     }
 
-    const timeValidation = validateBookingTimes(bookingData);
+    const timeValidation = validateNewBookingTimes(bookingData);
     if (!timeValidation.valid) {
       return NextResponse.json({ error: timeValidation.error || 'Invalid booking time selection.' }, { status: 400 });
     }

@@ -10,8 +10,13 @@
 
 export const VANCOUVER_TZ = 'America/Vancouver';
 
-/** Holds are placed up to this many days before the event (catch-up window: today..today+N). */
-export const DEPOSIT_HOLD_DAYS_AHEAD = 4;
+/**
+ * Holds are placed up to this many days before the event (catch-up window: today..today+N).
+ * Off-session (merchant-initiated) card holds can lapse after ~5 days (Visa). Placing the
+ * hold 3 days out keeps it alive at least one full day after the event so damage can be
+ * assessed (Keagan, 2026-11-23; was 4, which let holds drop the morning after the event).
+ */
+export const DEPOSIT_HOLD_DAYS_AHEAD = 3;
 
 /** The watchdog lists bookings within today..today+N that still have no hold. */
 export const DEPOSIT_WATCHDOG_DAYS_AHEAD = 3;

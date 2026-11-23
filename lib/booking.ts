@@ -325,6 +325,28 @@ export function getBookingWindowTimeStrings(bookingData: BookingTimeInput) {
   };
 }
 
+/**
+ * New bookings must end by 10:00 PM (Keagan, treasurer, 2026-11-23 — after Halloween,
+ * no new bookings past 10pm until the decision is updated). Applied only where a NEW
+ * booking starts (availability check, payment intent, friend booking), never in
+ * payment-success, so a payment already in flight is never stranded.
+ */
+export const NEW_BOOKING_LATEST_END_MINUTES = 22 * 60;
+
+export function validateNewBookingCutoff(bookingData: BookingTimeInput) {
+  const { endMinutes } = getBookingWindowMinutes(bookingData);
+  if (endMinutes > NEW_BOOKING_LATEST_END_MINUTES) {
+    return { valid: false, error: 'Bookings must end by 10:00 PM.' };
+  }
+  return { valid: true };
+}
+
+/** Full validation for a NEW booking: normal time rules + the 10pm cutoff. */
+export function validateNewBookingTimes(bookingData: BookingTimeInput) {
+  const base = validateBookingTimes(bookingData);
+  return base.valid ? validateNewBookingCutoff(bookingData) : base;
+}
+
 export function validateBookingTimes(bookingData: BookingTimeInput) {
   if (bookingData.bookingType === 'hourly') {
     if (!bookingData.startTime) {

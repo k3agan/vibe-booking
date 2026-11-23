@@ -26,7 +26,7 @@ const faqs = [
   {
     id: 'noise-restrictions',
     question: 'Are there noise restrictions?',
-    answer: 'Yes, all music and bar service must cease at your booked end time. Standard bookings end at 10:00 PM, late access is available for a fee until 12:00 AM, and after-midnight access can extend until 2:00 AM when arranged in advance. We ask that you be courteous to our neighbors and respect Burnaby noise bylaws.',
+    answer: 'Yes, all music and bar service must cease at your booked end time. All bookings end by 10:00 PM; late access past 10:00 PM is not available for new bookings. We ask that you be courteous to our neighbors and respect Burnaby noise bylaws.',
   },
   {
     id: 'decorations-policy',

@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
               // Don't fail the booking - cron will retry daily from 4 days out
             }
           } else {
-            console.log(`Event is in ${daysUntilEvent} days - damage deposit will be authorized by cron job 4 days before`);
+            console.log(`Event is in ${daysUntilEvent} days - damage deposit will be authorized by cron job 3 days before`);
           }
         }
       } catch (paymentMethodError) {

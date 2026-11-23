@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripeApiKey } from '@/lib/api-key-rotation';
-import { calculateBookingPriceWithSurcharges, validateBookingTimes } from '@/lib/booking';
+import { calculateBookingPriceWithSurcharges, validateNewBookingTimes } from '@/lib/booking';
 
 const stripe = new Stripe(getStripeApiKey(), {
   apiVersion: '2025-08-27.basil',
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const { amount, bookingData } = await request.json();
 
-    const timeValidation = validateBookingTimes(bookingData);
+    const timeValidation = validateNewBookingTimes(bookingData);
     if (!timeValidation.valid) {
       return NextResponse.json(
         { error: timeValidation.error || 'Invalid booking time selection.' },
