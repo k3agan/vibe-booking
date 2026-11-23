@@ -152,7 +152,7 @@ describe('vancouverDateString', () => {
     expect(vancouverDateString(new Date('2026-01-15T08:00:00Z'))).toBe('2026-01-15');
   });
 
-  it('builds the today..today+4 window across DST and month/year ends', () => {
+  it('builds the date window across DST and month/year ends', () => {
     const now = new Date('2026-10-31T17:00:00Z'); // 10:00 PDT, the day before B.C.'s last clock change would have been
     expect([0, 1, 2, 3, 4].map((d) => vancouverDateString(now, d))).toEqual([
       '2026-10-31',
@@ -161,7 +161,7 @@ describe('vancouverDateString', () => {
       '2026-11-03',
       '2026-11-04',
     ]);
-    expect(DEPOSIT_HOLD_DAYS_AHEAD).toBe(4);
+    expect(DEPOSIT_HOLD_DAYS_AHEAD).toBe(3);
     expect(DEPOSIT_WATCHDOG_DAYS_AHEAD).toBe(3);
     expect(vancouverDateString(new Date('2026-12-30T20:00:00Z'), 3)).toBe('2027-01-02');
   });

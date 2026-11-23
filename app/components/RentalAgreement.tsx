@@ -146,14 +146,13 @@ export default function RentalAgreement({ open, onClose, onAccept, formData, cal
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
             FULL RENTAL BALANCE to be paid at the time of booking. The Association reserves the right to charge up to 50% of the booking rate as a damage deposit if necessary. 
-            DAMAGE DEPOSIT: A hold for the deposit amount is placed on the card used to book, up to 4 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded. 
+            DAMAGE DEPOSIT: A hold for the deposit amount is placed on the card used to book, up to 3 days before your event. If the hold is declined, the booking is cancelled immediately, access codes are revoked, and the rental fee is not refunded. 
             Notice of cancellation must be received 21 days in advance of the event or function to receive a refund. 
             The Cancellation Fee is 50% of the Rental Fee up to a maximum of $450.
           </Typography>
 
           <Typography variant="body2" paragraph sx={{ fontWeight: 'bold' }}>
-            STANDARD BOOKINGS END AT 10:00 P.M. Late access is available for a fee until 12:00 a.m., and after-midnight
-            access can extend until 2:00 a.m. when arranged in advance. The Hall must be vacated by your booked end time.
+            ALL BOOKINGS END BY 10:00 P.M. Late access past 10:00 p.m. is not available for new bookings. The Hall must be vacated by your booked end time.
             Music must cease at your booked end time. All events must strictly comply with the Burnaby Noise or Sound Abatement Bylaw (noise levels are restricted, particularly after 10:00 PM to a maximum of 75 dBA, and renters are responsible for any fines incurred).
           </Typography>
 

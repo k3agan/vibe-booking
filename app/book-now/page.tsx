@@ -40,7 +40,8 @@ import {
   calculateBookingPriceWithSurcharges,
   getBookingRateInfo,
   getBookingWindowTimeStrings,
-  validateBookingTimes
+  NEW_BOOKING_LATEST_END_MINUTES,
+  validateNewBookingTimes
 } from '../../lib/booking';
 import { formatDepositAmount } from '../../lib/deposit-tiers';
 
@@ -318,11 +319,13 @@ export default function BookNowPage() {
     formData.phone,
   ]);
 
-  // Generate time options with 30-minute granularity (5 AM to 11:30 PM)
+  // Start times every 30 min from 5 AM; the last start leaves at least 1 hour before
+  // the 10:00 PM cutoff for new bookings (NEW_BOOKING_LATEST_END_MINUTES).
   const generateTimeOptions = () => {
     const options = [];
-    for (let hour = 5; hour <= 23; hour++) {
+    for (let hour = 5; hour <= 21; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
+        if (hour * 60 + minute + 60 > NEW_BOOKING_LATEST_END_MINUTES) continue;
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         const displayTime = new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -336,6 +339,23 @@ export default function BookNowPage() {
   };
 
   const timeOptions = generateTimeOptions();
+
+  // Hourly durations that still end by the 10:00 PM cutoff for the chosen start time.
+  const fitsBeforeCutoff = (hours: number) => {
+    if (!formData.startTime) return true;
+    const [h, m] = formData.startTime.split(':').map(Number);
+    return h * 60 + m + hours * 60 <= NEW_BOOKING_LATEST_END_MINUTES;
+  };
+
+  // If a new start time makes the chosen duration run past 10 PM, shorten it.
+  useEffect(() => {
+    if (formData.bookingType !== 'hourly' || !formData.startTime) return;
+    if (!fitsBeforeCutoff(formData.duration)) {
+      const longest = [7, 6, 5, 4, 3, 2, 1].find(fitsBeforeCutoff) ?? 1;
+      setFormData((prev) => ({ ...prev, duration: longest }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.startTime, formData.bookingType]);
   const formatTimeLabel = (timeString: string) => {
     const [hour, minute] = timeString.split(':').map(Number);
     return new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
@@ -463,7 +483,7 @@ export default function BookNowPage() {
       return;
     }
     
-    const timeValidation = validateBookingTimes({
+    const timeValidation = validateNewBookingTimes({
       selectedDate: formData.selectedDate,
       startTime: formData.startTime,
       bookingType: formData.bookingType,
@@ -799,7 +819,7 @@ export default function BookNowPage() {
 
                 {formData.bookingType === 'fullday' && (
                   <Alert severity="info" sx={{ mb: 3 }}>
-                    Full-day bookings run from 8:00 AM to 10:00 PM (early/late access available for a fee).
+                    Full-day bookings run from 8:00 AM to 10:00 PM (early access available for a fee). Bookings must end by 10:00 PM.
                   </Alert>
                 )}
 
@@ -815,19 +835,6 @@ export default function BookNowPage() {
                           <MenuItem value="none">No Early Access</MenuItem>
                           <MenuItem value="standard">Standard Early (6:00 AM - 8:00 AM)</MenuItem>
                           <MenuItem value="extra">Extra Early (5:00 AM - 6:00 AM)</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Late Access</InputLabel>
-                        <Select
-                          value={formData.lateAccessOption}
-                          onChange={(e) => handleInputChange('lateAccessOption', e.target.value)}
-                        >
-                          <MenuItem value="none">No Late Access</MenuItem>
-                          <MenuItem value="standard">Standard Late (10:00 PM - 12:00 AM)</MenuItem>
-                          <MenuItem value="after_midnight">After Midnight (12:00 AM - 2:00 AM)</MenuItem>
                         </Select>
                       </FormControl>
                     </Grid>
@@ -868,7 +875,7 @@ export default function BookNowPage() {
                           value={formData.duration}
                           onChange={(e) => handleInputChange('duration', e.target.value)}
                         >
-                          {[1, 2, 3, 4, 5, 6, 7].map(hours => (
+                          {[1, 2, 3, 4, 5, 6, 7].filter(fitsBeforeCutoff).map(hours => (
                             <MenuItem key={hours} value={hours}>
                               {hours} {hours === 1 ? 'Hour' : 'Hours'}
                             </MenuItem>

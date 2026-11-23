@@ -1,6 +1,6 @@
  import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { calculateEventTimes, validateBookingTimes } from '@/lib/booking';
+import { calculateEventTimes, validateNewBookingTimes } from '@/lib/booking';
 
 // Initialize Google Calendar API
 const calendar = google.calendar({ version: 'v3' });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const timeValidation = validateBookingTimes({
+    const timeValidation = validateNewBookingTimes({
       selectedDate,
       startTime,
       duration,
