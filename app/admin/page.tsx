@@ -94,7 +94,7 @@ export default function AdminPage() {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/send-reminders');
+      const response = await fetch('/api/admin/send-reminders', { credentials: 'same-origin' });
       const data = await response.json();
       
       if (data.success) {
@@ -113,7 +113,7 @@ export default function AdminPage() {
   const sendReminders = async () => {
     setSendingReminders(true);
     try {
-      const response = await fetch('/api/send-reminders', { method: 'POST' });
+      const response = await fetch('/api/admin/send-reminders', { method: 'POST', credentials: 'same-origin' });
       const data = await response.json();
       
       if (data.success) {
@@ -136,7 +136,7 @@ export default function AdminPage() {
   const sendFollowUps = async () => {
     setSendingReminders(true);
     try {
-      const response = await fetch('/api/send-followups', { method: 'POST' });
+      const response = await fetch('/api/admin/send-followups', { method: 'POST', credentials: 'same-origin' });
       const data = await response.json();
       
       if (data.success) {

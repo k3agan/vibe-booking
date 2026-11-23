@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUpcomingBookings, markReminderSent, logEmailSent } from '../../../lib/database';
-import { sendEventReminder } from '../../lib/email';
-import { createAccessCode, sendAdminAlert } from '../../../lib/seam';
+import { requireAdmin } from '@/lib/admin-auth';
+import { getUpcomingBookings, markReminderSent, logEmailSent } from '../../../../lib/database';
+import { sendEventReminder } from '../../../lib/email';
+import { createAccessCode, sendAdminAlert } from '../../../../lib/seam';
 import { fromZonedTime } from 'date-fns-tz';
 
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     // Get bookings happening in the next 24-48 hours
     const upcomingBookings = await getUpcomingBookings(2); // Next 2 days
@@ -148,6 +152,9 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check upcoming bookings without sending emails
 export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const upcomingBookings = await getUpcomingBookings(7); // Next 7 days
     
