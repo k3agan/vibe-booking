@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCompletedBookings, markFollowUpSent, logEmailSent } from '../../../lib/database';
-import { sendPostEventFollowUp } from '../../lib/email';
+import { requireAdmin } from '@/lib/admin-auth';
+import { getCompletedBookings, markFollowUpSent, logEmailSent } from '../../../../lib/database';
+import { sendPostEventFollowUp } from '../../../lib/email';
 import { fromZonedTime } from 'date-fns-tz';
 
 export async function POST(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     // Get bookings that completed 1-2 days ago and haven't had follow-up sent
     const completedBookings = await getCompletedBookings(2); // Last 2 days
@@ -114,6 +118,9 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check completed bookings without sending emails
 export async function GET(request: NextRequest) {
+  const unauthorized = requireAdmin(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const completedBookings = await getCompletedBookings(7); // Last 7 days
     
